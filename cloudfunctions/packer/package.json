@@ -1,0 +1,9 @@
+{
+  "name": "packer",
+  "version": "1.0.0",
+  "description": "顺路 · 成包器与兜底巡检",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
