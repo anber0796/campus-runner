@@ -96,7 +96,7 @@ module.exports = {
     }
 
     const fresh = await db.collection('packs').doc(id).get()
-    return { pack: decorate(fresh.data) }
+    return decorate(fresh.data)
   },
 
   'orders.my': async function (args) {

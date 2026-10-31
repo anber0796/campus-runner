@@ -13,6 +13,14 @@ Page({
 
   onLoad(query) {
     this.packId = query.id
+
+  // 开发者工具重编译时可能把本页当入口直接打开（没有 id），
+  // 这种情况直接回首页，别让用户看到一片空白 + 报错
+  if (!this.packId) {
+    wx.showToast({ title: '请从顺路包列表进入', icon: 'none' })
+    setTimeout(function () { wx.switchTab({ url: '/pages/index/index' }) }, 800)
+    return
+  }
   },
 
   onShow() {

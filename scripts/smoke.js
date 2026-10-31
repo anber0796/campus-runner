@@ -32,7 +32,11 @@ async function main() {
   // 3. 接单
   const target = list.packs[0]
   const accepted = await mock.handle('packs.accept', { id: target.id })
-  check('接单后状态为 accepted', accepted.pack.status === 'accepted', accepted.pack.status)
+  check('接单后状态为 accepted', accepted.status === 'accepted', accepted.status)
+  // 契约：写操作必须返回"包对象本身"，不能包成 { pack }
+  // 否则页面上的 pack.income 会是 undefined —— 这个坑真踩过
+  check('accept 返回包对象本身（含 income）', !!(accepted && accepted.income && accepted.income.detail),
+    '实际拿到: ' + JSON.stringify(Object.keys(accepted || {})))
 
   // 4. 同一个包不能被接第二次
   let dupBlocked = false
@@ -53,15 +57,20 @@ async function main() {
   check('没取齐餐时拒绝送达', blockDeliver)
 
   // 6. 逐单核销
+  let picked = null
   for (const o of target.orders) {
-    await mock.handle('deliver.pickup', { packId: target.id, orderId: o.id })
+    picked = await mock.handle('deliver.pickup', { packId: target.id, orderId: o.id })
   }
+  check('pickup 返回包对象本身（含 income）', !!(picked && picked.income),
+    '实际拿到: ' + JSON.stringify(Object.keys(picked || {})))
   const afterPick = await mock.handle('packs.detail', { id: target.id })
   check('取齐后 pickedCount 等于单量', afterPick.pickedCount === target.orders.length,
     afterPick.pickedCount + '/' + target.orders.length)
 
   // 7. 送达并产生结算流水
-  await mock.handle('deliver.complete', { packId: target.id, photo: 'proof.jpg' })
+  const completed = await mock.handle('deliver.complete', { packId: target.id, photo: 'proof.jpg' })
+  check('complete 返回包对象本身（含 income）', !!(completed && completed.income),
+    '实际拿到: ' + JSON.stringify(Object.keys(completed || {})))
   const detail = await mock.handle('packs.detail', { id: target.id })
   check('送达后状态为 delivered', detail.status === 'delivered', detail.status)
 

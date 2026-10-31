@@ -23,7 +23,7 @@ module.exports = {
     const idx = orders.findIndex(function (o) { return o.id === args.event.orderId })
     if (idx < 0) throw AppError(404, '这一单不在包里')
     if (orders[idx].picked) {
-      return { pack: packsHandler.decorate(pack) }
+      return packsHandler.decorate(pack)
     }
 
     const data = {}
@@ -44,7 +44,7 @@ module.exports = {
     }
 
     const fresh = await db.collection('packs').doc(pack._id).get()
-    return { pack: packsHandler.decorate(fresh.data) }
+    return packsHandler.decorate(fresh.data)
   },
 
   /**
@@ -97,6 +97,6 @@ module.exports = {
     })
 
     const fresh = await db.collection('packs').doc(pack._id).get()
-    return { pack: packsHandler.decorate(fresh.data) }
+    return packsHandler.decorate(fresh.data)
   },
 }

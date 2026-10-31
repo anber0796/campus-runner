@@ -166,7 +166,7 @@ const handlers = {
     if (active.length >= 4) return fail('今日接单已达上限（4 包）', 429)
     pack.status = 'accepted'
     pack.acceptedAt = Date.now()
-    return delay({ pack: decorate(pack) })
+    return delay(decorate(pack))
   },
 
   'orders.my': function () {
@@ -185,7 +185,7 @@ const handlers = {
     order.picked = true
     order.pickedAt = Date.now()
     if (pack.orders.every(function (o) { return o.picked })) pack.status = 'picked'
-    return delay({ pack: decorate(pack) })
+    return delay(decorate(pack))
   },
 
   'deliver.complete': function (payload) {
@@ -204,7 +204,7 @@ const handlers = {
       title: pack.canteenName + ' · ' + pack.orders.length + ' 单',
       time: Date.now(),
     })
-    return delay({ pack: decorate(pack) })
+    return delay(decorate(pack))
   },
 
   'wallet.summary': function () {
