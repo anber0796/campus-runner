@@ -1,0 +1,93 @@
+<view class="container">
+
+  <view class="section-title">实名信息</view>
+  <view class="card">
+    <view class="field">
+      <text class="field-label">姓名</text>
+      <input class="field-input" placeholder="与学籍一致" placeholder-class="field-placeholder"
+             value="{{form.name}}" bindinput="onInput" data-field="name" />
+    </view>
+    <view class="field">
+      <text class="field-label">学号</text>
+      <input class="field-input" placeholder="例如 2022318070" placeholder-class="field-placeholder"
+             value="{{form.studentNo}}" bindinput="onInput" data-field="studentNo" />
+    </view>
+    <view class="field">
+      <text class="field-label">手机号</text>
+      <input class="field-input" type="number" maxlength="11" placeholder="用于接收接单通知"
+             placeholder-class="field-placeholder" value="{{form.phone}}" bindinput="onInput" data-field="phone" />
+    </view>
+    <picker mode="selector" range="{{buildings}}" value="{{buildingIndex}}" bindchange="onBuildingChange">
+      <view class="field">
+        <text class="field-label">宿舍楼</text>
+        <view class="field-input field-picker">{{buildings[buildingIndex]}}<text class="arrow">›</text></view>
+      </view>
+    </picker>
+    <view class="field">
+      <text class="field-label">寝室号</text>
+      <input class="field-input" placeholder="例如 512" placeholder-class="field-placeholder"
+             value="{{form.room}}" bindinput="onInput" data-field="room" />
+    </view>
+  </view>
+
+  <view class="section-title">资质（合规前置）</view>
+  <view class="card">
+    <view class="cert-row" bindtap="uploadCert" data-type="studentCard">
+      <view>
+        <view class="menu-label">学生证 / 一卡通</view>
+        <view class="muted">证明你是本楼在籍学生</view>
+      </view>
+      <view class="{{certs.studentCard ? 'tag tag-green' : 'tag tag-amber'}}">
+        {{certs.studentCard ? '已上传' : '上传'}}
+      </view>
+    </view>
+    <view class="cert-row" bindtap="uploadCert" data-type="health">
+      <view>
+        <view class="menu-label">健康证</view>
+        <view class="muted">可参加校医院批量办理</view>
+      </view>
+      <view class="{{certs.health ? 'tag tag-green' : 'tag tag-amber'}}">
+        {{certs.health ? '已上传' : '上传'}}
+      </view>
+    </view>
+    <picker mode="date" value="{{form.healthExpire}}" bindchange="onDateChange">
+      <view class="field">
+        <text class="field-label">健康证到期</text>
+        <view class="field-input field-picker">
+          {{form.healthExpire || '请选择'}}<text class="arrow">›</text>
+        </view>
+      </view>
+    </picker>
+  </view>
+
+  <view class="section-title">你的动线（决定推给你哪些包）</view>
+  <view class="card">
+    <view class="muted">常去食堂（1～2 个）</view>
+    <view class="chips mt16">
+      <view wx:for="{{canteens}}" wx:key="id"
+            class="chip {{selectedCanteens.indexOf(item.id) >= 0 ? 'active' : ''}}"
+            bindtap="toggleCanteen" data-id="{{item.id}}">{{item.name}}</view>
+    </view>
+
+    <view class="divider"></view>
+
+    <view class="muted">下课波次（最多 3 个）</view>
+    <view class="chips mt16">
+      <view wx:for="{{waveOpts}}" wx:key="id"
+            class="chip {{selectedWaves.indexOf(item.id) >= 0 ? 'active' : ''}}"
+            bindtap="toggleWave" data-id="{{item.id}}">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="agree-row" bindtap="toggleAgree">
+    <view class="checkbox {{agree ? 'checked' : ''}}">{{agree ? '✓' : ''}}</view>
+    <view class="agree-text">我已阅读并同意《勤工俭学代取服务协议》，知晓本服务为同学互助性质</view>
+  </view>
+
+  <button class="btn-primary mt24" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
+    提交认证
+  </button>
+
+  <view class="foot-note">仅用于校内同学互助代取 · 全程步行配送</view>
+
+</view>

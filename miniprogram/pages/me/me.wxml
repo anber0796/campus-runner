@@ -1,0 +1,84 @@
+<view class="container">
+
+  <!-- 个人信息 -->
+  <view class="profile">
+    <view class="avatar">{{student.name ? student.name[0] : '同'}}</view>
+    <view class="profile-main">
+      <view class="row">
+        <text class="profile-name">{{student.name || '未完善资料'}}</text>
+        <text class="tag {{statusClass}} profile-tag">{{statusText}}</text>
+      </view>
+      <view class="profile-sub">{{student.buildingName || '未选楼栋'}} · {{student.room || '未填寝室'}}</view>
+    </view>
+  </view>
+
+  <!-- 未认证提示 -->
+  <view class="card cta-card" wx:if="{{student.status !== 'active'}}" bindtap="goRegister">
+    <view class="row-between">
+      <view>
+        <view class="title">完成认证才能接单</view>
+        <view class="muted">实名 + 学生证 + 健康证，约 3 分钟</view>
+      </view>
+      <view class="tag tag-green">去认证</view>
+    </view>
+  </view>
+
+  <!-- 动线档案 -->
+  <view class="card">
+    <view class="row-between">
+      <view class="title">我的动线</view>
+      <view class="muted" bindtap="goRegister">修改</view>
+    </view>
+    <view class="divider"></view>
+    <view class="menu-item">
+      <text class="menu-label">宿舍楼</text>
+      <text class="menu-value">{{student.buildingName || '未设置'}}</text>
+    </view>
+    <view class="menu-item">
+      <text class="menu-label">常去食堂</text>
+      <text class="menu-value">{{canteenText}}</text>
+    </view>
+    <view class="menu-item">
+      <text class="menu-label">下课波次</text>
+      <text class="menu-value">{{waveText}}</text>
+    </view>
+  </view>
+
+  <!-- 信用与合规 -->
+  <view class="card">
+    <view class="stat-row">
+      <view class="stat">
+        <view class="stat-num">{{student.credit || 100}}</view>
+        <view class="stat-label">信用分</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num">{{student.healthExpire ? '有效' : '—'}}</view>
+        <view class="stat-label">健康证</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num">{{student.platformRiderId ? '已绑' : '未绑'}}</view>
+        <view class="stat-label">平台骑手号</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="menu-item" bindtap="goOrder">
+      <text class="menu-label">我的单</text>
+      <text class="menu-value">进行中 / 已完成<text class="arrow">›</text></text>
+    </view>
+    <view class="menu-item">
+      <text class="menu-label">接单规则与信用分</text>
+      <text class="menu-value"><text class="arrow">›</text></text>
+    </view>
+    <view class="menu-item">
+      <text class="menu-label">健康证 / 保险</text>
+      <text class="menu-value">{{student.healthExpire || '待上传'}}<text class="arrow">›</text></text>
+    </view>
+    <view class="menu-item">
+      <text class="menu-label">关于</text>
+      <text class="menu-value">v0.1 MVP<text class="arrow">›</text></text>
+    </view>
+  </view>
+
+</view>

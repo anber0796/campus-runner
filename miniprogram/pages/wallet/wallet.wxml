@@ -1,0 +1,32 @@
+<view class="container">
+
+  <view class="wallet-top">
+    <view class="wallet-label">待结算</view>
+    <view class="wallet-amount">¥{{pending}}</view>
+    <view class="wallet-sub">已结算 ¥{{settled}}</view>
+    <view class="wallet-btn" bindtap="withdraw">提现</view>
+  </view>
+
+  <view class="section-title">收支明细</view>
+
+  <view class="card" wx:if="{{logs.length}}">
+    <view class="log-item" wx:for="{{logs}}" wx:key="id">
+      <view class="log-main">
+        <view class="log-title">{{item.title}}</view>
+        <view class="muted">{{item.timeText}} · {{item.statusText}}</view>
+      </view>
+      <view class="log-amount">{{item.amountText}}</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{!loading}}">
+    还没有收入记录{{'\n'}}完成第一趟就有啦
+  </view>
+
+  <view class="tip-card">
+    <view>· 送达后计入待结算，每周一自动结算</view>
+    <view>· 满 10 元可提现，T+1 到账</view>
+    <view>· 免运费补贴直接抵扣你本人的配送费</view>
+  </view>
+
+</view>

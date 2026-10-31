@@ -1,0 +1,70 @@
+.mt12 {
+  margin-top: 12rpx;
+}
+
+.order-row {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f5f6f8;
+}
+
+.order-row:last-child {
+  border-bottom: none;
+}
+
+.tail-box {
+  width: 108rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  background: #eef3ff;
+  color: #3b6ef6;
+  font-size: 26rpx;
+  font-weight: 600;
+  border-radius: 10rpx;
+  letter-spacing: 1rpx;
+}
+
+.order-info {
+  flex: 1;
+  margin-left: 22rpx;
+}
+
+.order-stall {
+  font-size: 28rpx;
+  margin-bottom: 6rpx;
+}
+
+.order-fee {
+  font-size: 28rpx;
+}
+
+.fee-line {
+  padding: 10rpx 0;
+}
+
+.rules {
+  background: #fbfcfd;
+}
+
+.rule-item {
+  font-size: 25rpx;
+  color: #5b6068;
+  line-height: 1.9;
+  margin-top: 6rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -2rpx 16rpx rgba(16, 24, 40, 0.06);
+}
+
+.container {
+  padding-bottom: 200rpx;
+}

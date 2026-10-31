@@ -1,0 +1,151 @@
+.container {
+  padding-bottom: 200rpx;
+}
+
+.mt8 {
+  margin-top: 8rpx;
+}
+
+.mt12 {
+  margin-top: 12rpx;
+}
+
+.steps {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 8rpx 32rpx;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 96rpx;
+}
+
+.step-dot {
+  width: 52rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  border-radius: 50%;
+  text-align: center;
+  background: #e6e8eb;
+  color: #a9aeb5;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.step.done .step-dot,
+.step.doing .step-dot {
+  background: #1f9d55;
+  color: #fff;
+}
+
+.step-label {
+  font-size: 22rpx;
+  color: #8a8f99;
+  margin-top: 10rpx;
+}
+
+.step.done .step-label,
+.step.doing .step-label {
+  color: #1f9d55;
+}
+
+.step-line {
+  flex: 1;
+  height: 3rpx;
+  background: #e6e8eb;
+  margin-top: 26rpx;
+}
+
+.step-line.on {
+  background: #1f9d55;
+}
+
+.pick-row {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f5f6f8;
+}
+
+.pick-row:last-child {
+  border-bottom: none;
+}
+
+.tail-box {
+  width: 108rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  background: #eef3ff;
+  color: #3b6ef6;
+  font-size: 26rpx;
+  font-weight: 600;
+  border-radius: 10rpx;
+}
+
+.pick-info {
+  flex: 1;
+  margin-left: 22rpx;
+}
+
+.pick-stall {
+  font-size: 28rpx;
+  margin-bottom: 6rpx;
+}
+
+.pick-btn {
+  padding: 0 30rpx;
+  line-height: 60rpx;
+  border-radius: 30rpx;
+  background: #1f9d55;
+  color: #fff;
+  font-size: 26rpx;
+}
+
+.picked-tag {
+  color: #1f9d55;
+  font-size: 26rpx;
+  padding-right: 12rpx;
+}
+
+.photo-box {
+  margin-top: 20rpx;
+  height: 320rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #f7f8fa;
+  border: 1rpx dashed #d9dce1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo {
+  width: 100%;
+  height: 320rpx;
+}
+
+.photo-placeholder {
+  color: #a9aeb5;
+  font-size: 26rpx;
+}
+
+.tip-card {
+  font-size: 24rpx;
+  color: #8a8f99;
+  line-height: 1.9;
+  padding: 0 12rpx 24rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -2rpx 16rpx rgba(16, 24, 40, 0.06);
+}

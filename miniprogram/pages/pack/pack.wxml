@@ -1,0 +1,58 @@
+<view class="container" wx:if="{{pack}}">
+
+  <view class="card">
+    <view class="row-between">
+      <view class="title">{{pack.canteenName}}</view>
+      <view class="tag tag-green">{{pack.waveLabel}}</view>
+    </view>
+    <view class="muted mt12">送回 {{pack.buildingName}} · 步行约 {{pack.walkMinutes}} 分钟 · {{pack.distanceMeters}} 米</view>
+  </view>
+
+  <view class="card">
+    <view class="row-between">
+      <view class="title">这一趟带 {{pack.orders.length}} 单</view>
+      <view class="muted">按尾号在平台 App 里核对</view>
+    </view>
+    <view class="divider"></view>
+
+    <view class="order-row" wx:for="{{pack.orders}}" wx:key="id">
+      <view class="tail-box">{{item.tail}}</view>
+      <view class="order-info">
+        <view class="order-stall">{{item.stall}}</view>
+        <view class="muted">{{pack.buildingName}} {{item.room}} · {{item.floor}} 层</view>
+      </view>
+      <view class="money order-fee">+{{item.fee}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row-between">
+      <text class="subtitle">本趟收益</text>
+      <text class="big-money">¥{{incomeText}}</text>
+    </view>
+    <view class="divider"></view>
+    <view class="row-between fee-line">
+      <text class="muted">餐费配送收入（含楼层加价）</text>
+      <text class="subtitle">¥{{subtotalText}}</text>
+    </view>
+    <view class="row-between fee-line">
+      <text class="muted">取餐后 15 分钟内送达</text>
+      <text class="subtitle">+¥0.30</text>
+    </view>
+  </view>
+
+  <view class="card rules">
+    <view class="title">接单前请确认</view>
+    <view class="rule-item">· 你本来就住 {{pack.buildingName}}，这一趟是顺路</view>
+    <view class="rule-item">· 到店逐档口扫码核销，取齐 {{pack.orders.length}} 单再走</view>
+    <view class="rule-item">· 敲门 30 秒无人应，挂门把手或放本楼公共架，拍照即可</view>
+    <view class="rule-item">· 接单后 12 分钟未到店，包会被回收并扣信用分</view>
+  </view>
+
+</view>
+
+<view class="bottom-bar" wx:if="{{pack}}">
+  <button class="btn-primary" bindtap="accept" loading="{{accepting}}" disabled="{{accepting}}">
+    我要带这一趟 · ¥{{pack.income ? pack.income.total : 0}}
+  </button>
+</view>

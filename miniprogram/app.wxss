@@ -130,3 +130,131 @@ page {
 .safe-bottom {
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
+
+/* ---- 通用列表 / 菜单 ---- */
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f5f6f8;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-label {
+  font-size: 28rpx;
+}
+
+.menu-value {
+  font-size: 26rpx;
+  color: #8a8f99;
+}
+
+.arrow {
+  color: #c9cdd4;
+  margin-left: 10rpx;
+}
+
+/* ---- 统计行 ---- */
+.stat-row {
+  display: flex;
+  padding: 12rpx 0 4rpx;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1c1f26;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #8a8f99;
+  margin-top: 6rpx;
+}
+
+/* ---- 顶部切换 ---- */
+.tabs {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 24rpx;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  line-height: 68rpx;
+  font-size: 27rpx;
+  color: #5b6068;
+  border-radius: 12rpx;
+}
+
+.tab.active {
+  background: #1f9d55;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---- 表单 ---- */
+.field {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f5f6f8;
+}
+
+.field:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  width: 170rpx;
+  font-size: 28rpx;
+  color: #3d424a;
+}
+
+.field-input {
+  flex: 1;
+  font-size: 28rpx;
+  text-align: right;
+}
+
+.field-placeholder {
+  color: #c9cdd4;
+}
+
+.section-title {
+  font-size: 26rpx;
+  color: #8a8f99;
+  margin: 32rpx 8rpx 12rpx;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 14rpx 28rpx;
+  border-radius: 32rpx;
+  background: #f2f3f5;
+  color: #5b6068;
+  font-size: 26rpx;
+  margin: 0 16rpx 16rpx 0;
+}
+
+.chip.active {
+  background: #e8f7ee;
+  color: #1f9d55;
+  font-weight: 600;
+}

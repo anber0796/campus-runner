@@ -1,0 +1,73 @@
+<view class="container" wx:if="{{pack}}">
+
+  <!-- 步骤条 -->
+  <view class="steps">
+    <view class="step done">
+      <view class="step-dot">1</view>
+      <view class="step-label">已接单</view>
+    </view>
+    <view class="step-line {{pack.pickedCount > 0 ? 'on' : ''}}"></view>
+    <view class="step {{allPicked ? 'done' : 'doing'}}">
+      <view class="step-dot">2</view>
+      <view class="step-label">取餐</view>
+    </view>
+    <view class="step-line {{allPicked ? 'on' : ''}}"></view>
+    <view class="step {{allPicked ? 'doing' : ''}}">
+      <view class="step-dot">3</view>
+      <view class="step-label">送达</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row-between">
+      <view class="title">{{pack.canteenName}} · {{pack.orders.length}} 单</view>
+      <view class="tag tag-green">{{pack.waveLabel}}</view>
+    </view>
+    <view class="muted mt12">取齐后回 {{pack.buildingName}}，逐单送到门口</view>
+  </view>
+
+  <view class="card">
+    <view class="title">逐档口核销取餐</view>
+    <view class="muted mt8">到档口后点一下，确认这单已到手</view>
+    <view class="divider"></view>
+
+    <view class="pick-row" wx:for="{{pack.orders}}" wx:key="id">
+      <view class="tail-box">{{item.tail}}</view>
+      <view class="pick-info">
+        <view class="pick-stall">{{item.stall}}</view>
+        <view class="muted">{{pack.buildingName}} {{item.room}} · {{item.floor}} 层</view>
+      </view>
+      <view wx:if="{{item.picked}}" class="picked-tag">已取</view>
+      <view wx:else class="pick-btn" bindtap="pickup" data-id="{{item.id}}">核销</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row-between">
+      <view class="title">送达留证</view>
+      <view class="muted">必拍</view>
+    </view>
+    <view class="muted mt8">敲门 30 秒无人应 → 挂门把手 / 放本楼公共架 → 拍照</view>
+
+    <view class="photo-box" bindtap="choosePhoto">
+      <image wx:if="{{photo}}" src="{{photo}}" mode="aspectFill" class="photo"></image>
+      <view wx:else class="photo-placeholder">+ 拍照 / 从相册选</view>
+    </view>
+  </view>
+
+  <view class="tip-card">
+    <view>· 取餐后 15 分钟内送达，多 ¥0.30</view>
+    <view>· 全程步行，不骑电动车</view>
+  </view>
+
+</view>
+
+<view class="bottom-bar" wx:if="{{pack}}">
+  <button
+    class="btn-primary {{allPicked && photo ? '' : 'btn-disabled'}}"
+    bindtap="submit"
+    loading="{{submitting}}"
+  >
+    {{allPicked ? (photo ? '确认送达' : '请先拍照留证') : '还有 ' + (pack.orders.length - pack.pickedCount) + ' 单没取'}}
+  </button>
+</view>

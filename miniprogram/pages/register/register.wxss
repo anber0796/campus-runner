@@ -1,0 +1,58 @@
+.field-picker {
+  color: #1c1f26;
+}
+
+.mt16 {
+  margin-top: 16rpx;
+}
+
+.mt24 {
+  margin-top: 24rpx;
+}
+
+.cert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f5f6f8;
+}
+
+.agree-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 8rpx 0;
+}
+
+.checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 38rpx;
+  text-align: center;
+  border: 2rpx solid #d9dce1;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.checkbox.checked {
+  background: #1f9d55;
+  border-color: #1f9d55;
+}
+
+.agree-text {
+  flex: 1;
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  color: #5b6068;
+  line-height: 1.7;
+}
+
+.foot-note {
+  text-align: center;
+  font-size: 22rpx;
+  color: #a9aeb5;
+  margin-top: 28rpx;
+}
