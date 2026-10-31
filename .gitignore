@@ -4,3 +4,6 @@ miniprogram_npm/
 project.private.config.json
 cloudfunctions/**/node_modules/
 *.log
+
+# 运营后台运行时数据
+admin/data.json
