@@ -21,7 +21,7 @@ function toast(msg) {
   el.textContent = msg
   el.classList.add('show')
   clearTimeout(el._t)
-  el._t = setTimeout(function () { el.classList.remove('show') }, 2200)
+  el._t = setTimeout(function () { el.classList.remove('show') }, 2400)
 }
 
 async function api(path, body) {
@@ -31,7 +31,9 @@ async function api(path, body) {
     body: JSON.stringify(body),
   } : {}
   const res = await fetch(path, opt)
-  return res.json()
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || '请求失败')
+  return data
 }
 
 // ---------------------------------------------------------------- 渲染
@@ -47,6 +49,8 @@ function renderStats() {
       value: s.avgOrdersPerPack,
       cls: s.packCount === 0 ? '' : (s.avgOk ? 'good' : 'warn'),
     },
+    { label: '已回落', value: s.fallbackCount, cls: s.fallbackCount ? 'warn' : '' },
+    { label: '待处理告警', value: s.alertCount, cls: s.alertCount ? 'warn' : '' },
   ]
   $('#stats').innerHTML = cards.map(function (c) {
     return '<div class="stat-card">' +
@@ -66,7 +70,7 @@ function renderStats() {
   } else {
     warn.className = 'card warn-card'
     warn.innerHTML = '<div>包均只有 <b>' + s.avgOrdersPerPack + '</b> 单，低于 3.5。' +
-      '此时佣金压不到 1.0 元以下，降本模型不成立——要么开更多楼栋密度，要么减少波次、把主力波次做满。</div>'
+      '此时佣金压不到 1.0 元以下，降本模型不成立。</div>'
   }
 }
 
@@ -91,13 +95,28 @@ function renderOrders() {
   }).join('')
 }
 
+const PACK_STATUS = {
+  available: { text: '待派', cls: '' },
+  accepted: { text: '已接单', cls: 'green' },
+  picked: { text: '已取餐', cls: 'blue' },
+  delivered: { text: '已送达', cls: 'green' },
+  fallback: { text: '已回落', cls: 'red' },
+}
+
 function renderPacks() {
   const packs = STATE.packs
   if (!packs.length) {
     $('#packs-list').innerHTML = '<div class="empty">还没有顺路包</div>'
     return
   }
+
+  const options = STATE.students.map(function (s) {
+    return '<option value="' + esc(s.id) + '">' + esc(s.name) + '（' + s.credit + ' 分）</option>'
+  }).join('')
+
   $('#packs-list').innerHTML = packs.map(function (p) {
+    const st = PACK_STATUS[p.status] || { text: p.status, cls: '' }
+
     const orders = p.orderList.map(function (o) {
       return '<div class="order-mini">' +
         '<div class="tail">尾号 ' + esc(o.tail) + '</div>' +
@@ -109,39 +128,87 @@ function renderPacks() {
     const caption = '这一趟 ¥' + p.income.total + ' · 顺路 9 分钟 · 帮 ' + p.orderCount +
       ' 位同学带饭回 ' + p.buildingName
 
+    let actions = ''
+    if (p.status === 'available') {
+      actions = '<select data-student-for="' + esc(p.id) + '">' + options + '</select>' +
+        '<button class="btn small" data-do-assign="' + esc(p.id) + '">指派</button>'
+    } else if (p.status === 'fallback') {
+      actions = '<span class="muted">原因：' + esc(p.fallbackReason || '-') + '</span>' +
+        '<button class="btn small" data-do-republish="' + esc(p.id) + '">重派回池</button>'
+    } else if (p.status === 'accepted') {
+      actions = '<span class="muted">接单：' + esc(p.assigneeName || '-') + '</span>'
+    }
+
     return '<div class="pack">' +
       '<div class="pack-head">' +
-        '<div class="pack-title">' + esc(p.canteenName) + ' · ' + p.orderCount + ' 单 · ' + esc(p.waveLabel) + '</div>' +
-        '<span class="badge ' + (p.status === 'assigned' ? 'green' : '') + '">' +
-          (p.status === 'assigned' ? '已指派 ' + esc(p.assignedTo) : '待派') + '</span>' +
+        '<div class="pack-title">' + esc(p.id) + ' · ' + esc(p.canteenName) + ' · ' + p.orderCount + ' 单 · ' + esc(p.waveLabel) + '</div>' +
+        '<span class="badge ' + st.cls + '">' + st.text + '</span>' +
       '</div>' +
       '<div class="pack-caption">' + esc(caption) + '</div>' +
       '<div class="orders-mini">' + orders + '</div>' +
-      '<div class="pack-foot">' +
-        '<input placeholder="指派给学生（姓名/学号）" data-assign="' + esc(p.id) + '" />' +
-        '<button class="btn small" data-do-assign="' + esc(p.id) + '">指派</button>' +
-        '<span class="money">¥' + p.income.total + '</span>' +
-      '</div>' +
+      '<div class="pack-foot">' + actions + '<span class="money">¥' + p.income.total + '</span></div>' +
     '</div>'
   }).join('')
 }
 
 function renderPatrol() {
-  const s = STATE.stats
-  const actions = (s.patrol || []).map(function (a) {
-    const label = {
-      fallback_to_fleet: '回落自有运力',
-      recycle: '回收并扣信用分',
-      warn_deliver: '送达超时告警',
-    }[a.action] || a.action
-    const cls = a.action === 'warn_deliver' ? 'amber' : 'red'
-    return '<div class="patrol-row">' +
-      '<span>' + esc(a.packId) + ' · 已 ' + a.ageMin + ' 分钟</span>' +
-      '<span class="badge ' + cls + '">' + esc(label) + '</span>' +
-      '</div>'
-  }).join('')
+  const actions = STATE.stats.patrol || []
+  $('#patrol-list').innerHTML = actions.length
+    ? actions.map(function (a) {
+      const label = {
+        fallback_to_fleet: '回落自有运力',
+        recycle: '回收 + 扣分',
+        warn_deliver: '送达超时告警',
+      }[a.action] || a.action
+      const cls = a.action === 'warn_deliver' ? 'amber' : 'red'
+      return '<div class="patrol-row">' +
+        '<span>' + esc(a.packId) + ' · 已 ' + a.ageMin + ' 分钟</span>' +
+        '<span class="badge ' + cls + '">' + esc(label) + '</span>' +
+        '</div>'
+    }).join('')
+    : '<div class="empty">暂时没有需要兜底的包</div>'
+}
 
-  $('#patrol-list').innerHTML = actions || '<div class="empty">暂时没有需要兜底的包</div>'
+function renderAlerts() {
+  const alerts = STATE.alerts || []
+  $('#alert-hint').textContent = alerts.length ? alerts.length + ' 条未处理' : ''
+  $('#alert-list').innerHTML = alerts.length
+    ? alerts.map(function (a) {
+      const cls = a.severity === 'high' ? 'red' : (a.severity === 'medium' ? 'amber' : '')
+      return '<div class="patrol-row">' +
+        '<span>' + esc(a.message) + '</span>' +
+        '<span class="badge ' + cls + '">' + esc(a.type) + '</span>' +
+        '</div>'
+    }).join('')
+    : '<div class="empty">没有告警</div>'
+}
+
+function renderStudents() {
+  $('#students-table tbody').innerHTML = (STATE.students || []).map(function (s) {
+    const frozen = s.frozenUntil && s.frozenUntil > Date.now()
+    return '<tr>' +
+      '<td>' + esc(s.name) + '</td>' +
+      '<td>' + esc(s.buildingId) + '</td>' +
+      '<td>' + s.credit + '</td>' +
+      '<td>' + (frozen
+        ? '<span class="badge red">已冻结</span>'
+        : '<span class="badge green">正常</span>') + '</td>' +
+      '</tr>'
+  }).join('')
+}
+
+function renderCreditLogs() {
+  const logs = STATE.creditLogs || []
+  const el = $('#credit-list')
+  if (!el) return
+  el.innerHTML = logs.length
+    ? logs.map(function (l) {
+      return '<div class="patrol-row">' +
+        '<span>' + esc(l.reason) + ' · ' + esc(l.packId) + '</span>' +
+        '<span class="badge red">' + l.delta + '</span>' +
+        '</div>'
+    }).join('')
+    : '<div class="empty">还没有扣分记录</div>'
 }
 
 function renderAll() {
@@ -149,6 +216,9 @@ function renderAll() {
   renderOrders()
   renderPacks()
   renderPatrol()
+  renderAlerts()
+  renderStudents()
+  renderCreditLogs()
 }
 
 // ---------------------------------------------------------------- 交互
@@ -156,6 +226,19 @@ function renderAll() {
 async function refresh() {
   STATE = await api('/api/state')
   renderAll()
+}
+
+async function run(fn, okMsg) {
+  try {
+    const r = await fn()
+    if (r && r.state) STATE = r.state
+    else if (r) STATE = r
+    renderAll()
+    if (okMsg) toast(typeof okMsg === 'function' ? okMsg(r) : okMsg)
+    return r
+  } catch (e) {
+    toast(e.message)
+  }
 }
 
 $$('.tab').forEach(function (t) {
@@ -167,46 +250,49 @@ $$('.tab').forEach(function (t) {
   })
 })
 
-$('#btn-seed').addEventListener('click', async function () {
-  STATE = await api('/api/seed', {})
-  renderAll()
-  toast('已生成 ' + STATE.stats.totalOrders + ' 条演示订单')
+$('#btn-seed').addEventListener('click', function () {
+  run(function () { return api('/api/seed', {}) },
+    function (r) { return '已生成 ' + r.stats.totalOrders + ' 条订单' })
 })
 
-$('#btn-pack').addEventListener('click', async function () {
-  const r = await api('/api/pack', {})
-  STATE = r.state
-  renderAll()
-  if (r.created === 0) {
-    toast('没有可成包的订单，先生成演示订单')
-  } else {
-    toast('成包 ' + r.created + ' 个，包均 ' + r.stats.avgOrdersPerPack + ' 单')
-  }
+$('#btn-pack').addEventListener('click', function () {
+  run(function () { return api('/api/pack', {}) }, function (r) {
+    return r.created === 0 ? '没有可成包的订单' : '成包 ' + r.created + ' 个，包均 ' + r.stats.avgOrdersPerPack + ' 单'
+  })
 })
 
-$('#btn-reset').addEventListener('click', async function () {
-  STATE = await api('/api/reset', {})
-  renderAll()
-  toast('已重置')
+$('#btn-reset').addEventListener('click', function () {
+  run(function () { return api('/api/reset', {}) }, '已重置')
 })
 
-$('#btn-simulate').addEventListener('click', async function () {
-  const r = await api('/api/simulate', { minutes: 10 })
-  STATE = r.state
-  renderAll()
-  toast('时间前进 10 分钟，触发 ' + r.actions.length + ' 条兜底动作')
+$('#btn-simulate').addEventListener('click', function () {
+  run(function () { return api('/api/simulate', { minutes: 10 }) },
+    function (r) { return '时间前进 10 分钟，判定出 ' + r.actions.length + ' 条兜底动作' })
 })
 
-// 事件委托：指派的输入框和按钮是动态渲染的
+$('#btn-execute').addEventListener('click', function () {
+  run(function () { return api('/api/execute', {}) }, function (r) {
+    if (!r.report || !r.report.applied.length) return '没有需要执行的动作'
+    return '已执行 ' + r.report.applied.length + ' 条兜底动作'
+  })
+})
+
 document.addEventListener('click', async function (e) {
-  const id = e.target.getAttribute && e.target.getAttribute('data-do-assign')
-  if (!id) return
-  const input = document.querySelector('[data-assign="' + id + '"]')
-  const name = input && input.value.trim()
-  if (!name) return toast('先填个学生名字')
-  STATE = await api('/api/assign', { packId: id, student: name })
-  renderAll()
-  toast('已指派给 ' + name)
+  const t = e.target
+  if (!t.getAttribute) return
+
+  const assignId = t.getAttribute('data-do-assign')
+  if (assignId) {
+    const sel = document.querySelector('[data-student-for="' + assignId + '"]')
+    const studentId = sel && sel.value
+    if (!studentId) return toast('先选一个学生')
+    return run(function () { return api('/api/assign', { packId: assignId, studentId: studentId }) }, '已指派')
+  }
+
+  const republishId = t.getAttribute('data-do-republish')
+  if (republishId) {
+    return run(function () { return api('/api/republish', { packId: republishId }) }, '已重派回池')
+  }
 })
 
 refresh()

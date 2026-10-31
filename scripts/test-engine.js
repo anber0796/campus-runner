@@ -210,6 +210,134 @@ test('两份 commission 的 RULE 常量一致', function () {
   assert.deepStrictEqual(commissionPacker.RULE, commissionApi.RULE)
 })
 
+// ---------- 兜底执行器 ----------
+const executor = require('../cloudfunctions/packer/lib/executor')
+
+const NOON = new Date('2026-10-31T12:00:00').getTime()
+
+function mkState() {
+  return {
+    packs: [
+      { id: 'P1', status: 'available', buildingName: '3栋', offeredAt: NOON - 9 * 60000, orders: [{ picked: false }] },
+      { id: 'P2', status: 'accepted', acceptedBy: 'u1', acceptedAt: NOON - 13 * 60000, orders: [{ picked: false }] },
+      { id: 'P3', status: 'picked', pickedAt: NOON - 25 * 60000, orders: [{ picked: true }] },
+    ],
+    students: [{ id: 'S1', openid: 'u1', name: '张三', credit: 100 }],
+    creditLogs: [],
+    alerts: [],
+  }
+}
+
+test('无人接 → 回落，且不扣学生信用分', function () {
+  const st = mkState()
+  const r = executor.execute(st, [{ packId: 'P1', action: 'fallback_to_fleet', ageMin: 9 }], { now: NOON })
+  assert.strictEqual(r.applied.length, 1)
+  assert.strictEqual(st.packs[0].status, 'fallback')
+  assert.strictEqual(st.students[0].credit, 100, '没人接不该扣分')
+  assert.strictEqual(st.alerts.length, 1)
+  assert.strictEqual(st.alerts[0].severity, 'high')
+})
+
+test('同一个回落动作重复执行只生效一次（幂等）', function () {
+  const st = mkState()
+  executor.execute(st, [{ packId: 'P1', action: 'fallback_to_fleet', ageMin: 9 }], { now: NOON })
+  const r2 = executor.execute(st, [{ packId: 'P1', action: 'fallback_to_fleet', ageMin: 9 }], { now: NOON + 1000 })
+  assert.strictEqual(r2.applied.length, 0, '第二次不该再生效')
+  assert.strictEqual(st.alerts.length, 1, '不该重复告警')
+})
+
+test('接了不动 → 回收 + 扣 5 分', function () {
+  const st = mkState()
+  executor.execute(st, [{ packId: 'P2', action: 'recycle', ageMin: 13 }], { now: NOON })
+  assert.strictEqual(st.packs[1].status, 'fallback')
+  assert.strictEqual(st.packs[1].acceptedBy, null)
+  assert.strictEqual(st.students[0].credit, 95)
+  assert.strictEqual(st.creditLogs.length, 1)
+  assert.strictEqual(st.creditLogs[0].delta, -5)
+})
+
+test('当日累计 3 次回收 → 冻结接单', function () {
+  const st = mkState()
+  st.packs = ['P2', 'P4', 'P5'].map(function (id) {
+    return { id: id, status: 'accepted', acceptedBy: 'u1', acceptedAt: NOON - 13 * 60000, orders: [{ picked: false }] }
+  })
+  ;['P2', 'P4', 'P5'].forEach(function (id) {
+    executor.execute(st, [{ packId: id, action: 'recycle', ageMin: 13 }], { now: NOON })
+  })
+  assert.strictEqual(st.students[0].credit, 85, '扣 3 次应为 85')
+  assert.ok(st.students[0].frozenUntil > NOON, '应被冻结')
+  assert.ok(st.alerts.some(function (a) { return a.type === 'freeze' }), '应产生冻结告警')
+})
+
+test('跨天不累计（昨天两次 + 今天一次不冻结）', function () {
+  const st = mkState()
+  st.creditLogs = [
+    { openid: 'u1', reason: 'recycle', at: NOON - 24 * 3600 * 1000 },
+    { openid: 'u1', reason: 'recycle', at: NOON - 24 * 3600 * 1000 },
+  ]
+  st.packs = [{ id: 'P9', status: 'accepted', acceptedBy: 'u1', acceptedAt: NOON - 13 * 60000, orders: [{ picked: false }] }]
+  executor.execute(st, [{ packId: 'P9', action: 'recycle', ageMin: 13 }], { now: NOON })
+  assert.ok(!st.students[0].frozenUntil, '只有今日 1 次，不该冻结')
+})
+
+test('冻结告警只推一次，不重复刷屏', function () {
+  const st = mkState()
+  st.packs = ['P2', 'P4', 'P5', 'P6'].map(function (id) {
+    return { id: id, status: 'accepted', acceptedBy: 'u1', acceptedAt: NOON - 13 * 60000, orders: [{ picked: false }] }
+  })
+  ;['P2', 'P4', 'P5', 'P6'].forEach(function (id) {
+    executor.execute(st, [{ packId: id, action: 'recycle', ageMin: 13 }], { now: NOON })
+  })
+  const freezeAlerts = st.alerts.filter(function (a) { return a.type === 'freeze' })
+  assert.strictEqual(freezeAlerts.length, 1, '4 次回收只该有 1 条冻结告警，实际 ' + freezeAlerts.length)
+  assert.strictEqual(st.students[0].credit, 80, '4 次应扣到 80')
+})
+
+test('送达超时只告警，不改状态', function () {
+  const st = mkState()
+  executor.execute(st, [{ packId: 'P3', action: 'warn_deliver', ageMin: 25 }], { now: NOON })
+  assert.strictEqual(st.packs[2].status, 'picked', '状态不该被改')
+  assert.strictEqual(st.alerts.length, 1)
+  assert.strictEqual(st.alerts[0].type, 'deliver_timeout')
+
+  const r2 = executor.execute(st, [{ packId: 'P3', action: 'warn_deliver', ageMin: 30 }], { now: NOON + 60000 })
+  assert.strictEqual(r2.applied.length, 0, '同一包不重复告警')
+})
+
+test('包不存在时安全跳过而不是崩溃', function () {
+  const st = mkState()
+  const r = executor.execute(st, [{ packId: 'NOT_EXIST', action: 'fallback_to_fleet', ageMin: 9 }], { now: NOON })
+  assert.strictEqual(r.applied.length, 0)
+  assert.strictEqual(r.skipped[0].why, 'pack_not_found')
+})
+
+test('状态已变化时跳过，不覆盖别人的操作', function () {
+  const st = mkState()
+  // 学生在巡检之后、执行之前自己送到了
+  st.packs[1].status = 'picked'
+  const r = executor.execute(st, [{ packId: 'P2', action: 'recycle', ageMin: 13 }], { now: NOON })
+  assert.strictEqual(r.applied.length, 0)
+  assert.ok(r.skipped[0].why.indexOf('status_changed') === 0)
+  assert.strictEqual(st.students[0].credit, 100, '不该扣分')
+})
+
+test('重派：回落包放回池子，并清掉相关告警', function () {
+  const st = mkState()
+  executor.execute(st, [{ packId: 'P1', action: 'fallback_to_fleet', ageMin: 9 }], { now: NOON })
+  const r = executor.republish(st, 'P1', { now: NOON + 60000 })
+  assert.strictEqual(r.ok, true)
+  assert.strictEqual(st.packs[0].status, 'available')
+  assert.strictEqual(st.packs[0].republishCount, 1)
+  assert.strictEqual(st.alerts[0].handled, true)
+})
+
+test('重派只能作用于回落状态的包', function () {
+  const st = mkState()
+  const r = executor.republish(st, 'P3', { now: NOON })
+  assert.strictEqual(r.ok, false)
+  assert.ok(r.why.indexOf('status_changed') === 0)
+})
+
 // ---------- 汇总 ----------
 console.log('\n通过 ' + passed + ' 项')
 if (failures.length) {

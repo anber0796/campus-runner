@@ -4,10 +4,8 @@
  *   node admin/server.js
  *   打开 http://127.0.0.1:8787
  *
- * 为什么先做本地版：
- *   小程序端要云开发环境，但运营后台不需要等——同一台机器上把
- *   「订单入库 → 成包 → 巡检回落」整条链路跑通，比先搭登录鉴权更有价值。
- *   成包器本身是纯函数（cloudfunctions/packer/lib/），将来搬到云函数里是一行 require。
+ * 业务逻辑全部来自 cloudfunctions/packer/lib/（纯函数，可单测），
+ * 这里只负责：拼状态 → 调纯函数 → 存盘。将来上云时替换存储层即可。
  *
  * 数据落在 admin/data.json，删掉即重置。
  */
@@ -18,6 +16,7 @@ const url = require('url')
 
 const { buildPacks } = require('../cloudfunctions/packer/lib/packer')
 const { patrol } = require('../cloudfunctions/packer/lib/patrol')
+const executor = require('../cloudfunctions/packer/lib/executor')
 
 const PORT = process.env.PORT || 8787
 const DATA_FILE = path.join(__dirname, 'data.json')
@@ -35,14 +34,28 @@ const STALLS = [
   { id: 'S9', name: '出餐慢的档口' },
 ]
 
+const STUDENTS = [
+  { id: 'S1', openid: 'u1', name: '张三', buildingId: 'B3', credit: 100 },
+  { id: 'S2', openid: 'u2', name: '李四', buildingId: 'B3', credit: 100 },
+  { id: 'S3', openid: 'u3', name: '王五', buildingId: 'B5', credit: 100 },
+  { id: 'S4', openid: 'u4', name: '赵六', buildingId: 'B1', credit: 88 },
+]
+
 // ---------------------------------------------------------------- 存储
 
+function blank() {
+  return { orders: [], packs: [], students: [], creditLogs: [], alerts: [], seq: 0 }
+}
+
 function load() {
+  let raw
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
+    raw = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
   } catch (e) {
-    return { orders: [], packs: [], seq: 0 }
+    return blank()
   }
+  // 兼容旧数据文件
+  return Object.assign(blank(), raw)
 }
 
 function save(state) {
@@ -86,7 +99,7 @@ function seedOrders() {
         stallName: stall.name,
         floor: floor,
         room: room,
-        volume: stall.id === 'S2' || stall.id === 'S4' ? 2 : 1,
+        volume: (stall.id === 'S2' || stall.id === 'S4') ? 2 : 1,
         receiverName: '同学' + i,
         receiverPhone: '138' + String(10000000 + i).slice(-8),
         status: 'CREATED',
@@ -97,13 +110,15 @@ function seedOrders() {
   return out
 }
 
-// ---------------------------------------------------------------- 业务动作
+// ---------------------------------------------------------------- 业务
 
-function decoratePack(pack, ordersById) {
+function decoratePack(pack, ordersById, studentsById) {
+  const stu = pack.acceptedBy ? studentsById[pack.acceptedBy] : null
   return Object.assign({}, pack, {
     buildingName: BUILDINGS[pack.buildingId] || pack.buildingId,
     canteenName: CANTEENS[pack.canteenId] || pack.canteenId,
     waveLabel: WAVES[pack.waveId] || pack.waveId,
+    assigneeName: stu ? stu.name : '',
     orderList: pack.orders.map(function (id) {
       const o = ordersById[id] || {}
       return {
@@ -131,6 +146,7 @@ function runPacking(state) {
       createdAt: Date.now(),
       offeredAt: Date.now(),
       status: 'available',
+      version: 0,
     })
     state.packs.push(pack)
     created.push(pack)
@@ -149,25 +165,29 @@ function runPacking(state) {
 function snapshot(state) {
   const ordersById = {}
   state.orders.forEach(function (o) { ordersById[o.id] = o })
+  const studentsById = {}
+  state.students.forEach(function (s) { studentsById[s.id] = s })
 
-  const packs = state.packs.map(function (p) { return decoratePack(p, ordersById) })
+  const packs = state.packs.map(function (p) { return decoratePack(p, ordersById, studentsById) })
   const packedOrders = packs.reduce(function (s, p) { return s + p.orderCount }, 0)
   const avg = packs.length ? Math.round((packedOrders / packs.length) * 100) / 100 : 0
-
-  const pendingOrders = state.orders.filter(function (o) { return o.status === 'CREATED' })
+  const unhandled = (state.alerts || []).filter(function (a) { return !a.handled })
 
   return {
     orders: state.orders,
     packs: packs,
+    students: state.students,
+    creditLogs: (state.creditLogs || []).slice(-40).reverse(),
+    alerts: unhandled.slice().reverse(),
     stats: {
       totalOrders: state.orders.length,
-      pendingOrders: pendingOrders.length,
+      pendingOrders: state.orders.filter(function (o) { return o.status === 'CREATED' }).length,
       packedOrders: packedOrders,
       packCount: packs.length,
       avgOrdersPerPack: avg,
-      // PRD 命门：包均 ≥3.5
       avgOk: avg >= 3.5,
-      droppedOrders: state.orders.filter(function (o) { return o.status === 'CREATED' && o.everDropped }).length,
+      fallbackCount: packs.filter(function (p) { return p.status === 'fallback' }).length,
+      alertCount: unhandled.length,
       patrol: patrol(state.packs, Date.now()),
     },
     config: { buildings: BUILDINGS, canteens: CANTEENS, waves: WAVES, stalls: STALLS },
@@ -178,7 +198,11 @@ function snapshot(state) {
 
 function send(res, code, body, type) {
   const payload = type === 'json' ? JSON.stringify(body) : body
-  res.writeHead(code, { 'Content-Type': type === 'json' ? 'application/json; charset=utf-8' : (type || 'text/plain; charset=utf-8') })
+  res.writeHead(code, {
+    'Content-Type': type === 'json'
+      ? 'application/json; charset=utf-8'
+      : (type || 'text/plain; charset=utf-8'),
+  })
   res.end(payload)
 }
 
@@ -202,7 +226,6 @@ const MIME = {
 function serveStatic(req, res, pathname) {
   const rel = pathname === '/' ? '/index.html' : pathname
   const file = path.join(PUBLIC_DIR, rel)
-  // 防目录穿越
   if (!file.startsWith(PUBLIC_DIR)) return send(res, 403, 'forbidden')
 
   fs.readFile(file, function (err, buf) {
@@ -229,15 +252,14 @@ const server = http.createServer(async function (req, res) {
     }
 
     if (pathname === '/api/seed') {
-      state.orders = seedOrders()
-      state.packs = []
-      state.seq = 0
-      save(state)
-      return send(res, 200, snapshot(state), 'json')
+      const fresh = blank()
+      fresh.orders = seedOrders()
+      fresh.students = JSON.parse(JSON.stringify(STUDENTS))
+      save(fresh)
+      return send(res, 200, snapshot(fresh), 'json')
     }
 
     if (pathname === '/api/import') {
-      // 小票扫码 / OCR 入库：按 channel + channelOrderNo 去重
       const incoming = Array.isArray(body.orders) ? body.orders : []
       let added = 0
       let duplicated = 0
@@ -261,21 +283,36 @@ const server = http.createServer(async function (req, res) {
     if (pathname === '/api/pack') {
       const r = runPacking(state)
       save(state)
-      return send(res, 200, { created: r.created.length, stats: r.stats, dropped: r.dropped, state: snapshot(state) }, 'json')
+      return send(res, 200, {
+        created: r.created.length,
+        stats: r.stats,
+        dropped: r.dropped,
+        state: snapshot(state),
+      }, 'json')
     }
 
     if (pathname === '/api/assign') {
+      // 指派 = 学生接单（影子架构里真正的派驻点在平台后台，这里只记录谁接了）
       const pack = state.packs.filter(function (p) { return p.id === body.packId })[0]
       if (!pack) return send(res, 404, { error: '包不存在' }, 'json')
-      pack.assignedTo = body.student || '未命名学生'
-      pack.status = 'assigned'
-      pack.assignedAt = Date.now()
+      if (pack.status !== 'available') {
+        return send(res, 409, { error: '包当前状态是 ' + pack.status + '，不能指派' }, 'json')
+      }
+      const stu = state.students.filter(function (s) { return s.id === body.studentId })[0]
+      if (!stu) return send(res, 404, { error: '学生不存在' }, 'json')
+      if (stu.frozenUntil && stu.frozenUntil > Date.now()) {
+        return send(res, 403, { error: stu.name + ' 已被冻结接单' }, 'json')
+      }
+
+      pack.status = 'accepted'
+      pack.acceptedBy = stu.id
+      pack.acceptedAt = Date.now()
+      pack.updatedAt = Date.now()
       save(state)
       return send(res, 200, snapshot(state), 'json')
     }
 
     if (pathname === '/api/simulate') {
-      // 把包的计时往前拨，用来演示「无人接回落 / 接单不动回收」
       const minutes = Number(body.minutes) || 10
       state.packs.forEach(function (p) {
         if (p.offeredAt) p.offeredAt -= minutes * 60000
@@ -287,9 +324,24 @@ const server = http.createServer(async function (req, res) {
       return send(res, 200, { actions: actions, state: snapshot(state) }, 'json')
     }
 
+    if (pathname === '/api/execute') {
+      // 巡检 → 执行，一次到位
+      const actions = patrol(state.packs, Date.now())
+      const report = executor.execute(state, actions, { now: Date.now() })
+      save(state)
+      return send(res, 200, { actions: actions, report: report, state: snapshot(state) }, 'json')
+    }
+
+    if (pathname === '/api/republish') {
+      const r = executor.republish(state, body.packId, { now: Date.now() })
+      if (!r.ok) return send(res, 409, { error: r.why }, 'json')
+      save(state)
+      return send(res, 200, snapshot(state), 'json')
+    }
+
     if (pathname === '/api/reset') {
-      save({ orders: [], packs: [], seq: 0 })
-      return send(res, 200, snapshot({ orders: [], packs: [], seq: 0 }), 'json')
+      save(blank())
+      return send(res, 200, snapshot(blank()), 'json')
     }
 
     return send(res, 404, { error: 'unknown api' }, 'json')

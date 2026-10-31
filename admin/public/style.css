@@ -317,3 +317,14 @@ tr:last-child td { border-bottom: none; }
 }
 
 .toast.show { opacity: 0.92; }
+
+.pack-foot select {
+  border: 1px solid #dcdfe4;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+.pack-foot select:focus { border-color: #1f9d55; }
