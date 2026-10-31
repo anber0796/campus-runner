@@ -1,5 +1,6 @@
 const api = require('../../utils/api')
 const wavesLib = require('../../utils/waves')
+const subscribe = require('../../utils/subscribe')
 
 const BUILDINGS = ['1栋', '2栋', '3栋', '4栋', '5栋', '6栋', '7栋', '8栋']
 const CANTEENS = [
@@ -136,7 +137,23 @@ Page({
     api.saveStudent(profile)
       .then(function () {
         wx.showToast({ title: '认证已提交', icon: 'success' })
-        setTimeout(function () { wx.navigateBack() }, 700)
+        if (!subscribe.templateIds().length) {
+          setTimeout(function () { wx.navigateBack() }, 700)
+          return
+        }
+        wx.showModal({
+          title: '要开下课提醒吗',
+          content: '下课前 10 分钟提醒你有顺路包，一天最多 3 次。',
+          confirmText: '开启',
+          cancelText: '再说',
+          success: function (res) {
+            const done = function () {
+              setTimeout(function () { wx.navigateBack() }, 500)
+            }
+            if (!res.confirm) return done()
+            subscribe.request().then(done).catch(done)
+          },
+        })
       })
       .catch(function (e) {
         that.setData({ submitting: false })

@@ -17,6 +17,7 @@ const _ = db.command
 const { buildPacks } = require('./lib/packer')
 const { patrol } = require('./lib/patrol')
 const executor = require('./lib/executor')
+const notify = require('./lib/notify')
 const config = require('./lib/config')
 
 /**
@@ -182,6 +183,77 @@ async function runExecute() {
   }
 }
 
+/**
+ * 波次预告推送（定时触发器：每个波次前 10 分钟跑一次）
+ *
+ * 一次只给一个学生推一个包。理由：
+ *   1. 微信一次性订阅 = 一次授权只能推一条，多发会失败
+ *   2. 一次性推 3 个包会让选择成本变高，反而降低接单率
+ */
+async function runNotify() {
+  const now = Date.now()
+  const tenantId = config.TENANT_ID
+
+  if (!config.SUBSCRIBE_TEMPLATE_ID) {
+    return { ok: false, msg: '未配置 SUBSCRIBE_TEMPLATE_ID，推送已跳过' }
+  }
+
+  const packs = await fetchAll(db.collection('packs').where({ tenantId: tenantId, status: 'available' }))
+  const eligible = packs.filter(function (p) { return notify.isEligiblePack(p) })
+  if (!eligible.length) return { ok: true, eligible: 0, sent: 0 }
+
+  const students = await fetchAll(db.collection('students').where({ status: 'active' }))
+  const logs = await fetchAll(db.collection('notification_logs').where({ tenantId: tenantId, type: 'wave_preview' }))
+
+  const historyBy = {}
+  logs.forEach(function (l) {
+    if (!historyBy[l.openid]) historyBy[l.openid] = []
+    historyBy[l.openid].push({ at: l.at })
+  })
+
+  let sent = 0
+  let skipped = 0
+  let failed = 0
+  const notified = {}
+
+  for (const stu of students) {
+    const mine = notify.matchPacks(stu, eligible).filter(function (p) { return !notified[p._id] })
+    if (!mine.length) continue
+
+    const gate = notify.canNotify(historyBy[stu.openid], now)
+    if (!gate.ok) {
+      skipped++
+      continue
+    }
+
+    const pack = mine[0]
+    try {
+      await cloud.openapi.subscribeMessage.send({
+        touser: stu.openid,
+        templateId: config.SUBSCRIBE_TEMPLATE_ID,
+        page: 'pages/index/index',
+        miniprogramState: 'formal',
+        data: notify.buildTemplateData(pack),
+      })
+      await db.collection('notification_logs').add({
+        data: { tenantId: tenantId, openid: stu.openid, packId: pack._id, type: 'wave_preview', at: now },
+      })
+      notified[pack._id] = true
+      sent++
+    } catch (e) {
+      failed++
+      // 43101 = 用户拒收/没有订阅额度；47003 = 模板字段不匹配。两者都不该中断整批
+      console.warn('[notify]', stu.openid, (e && (e.errCode || e.message)) || e)
+    }
+  }
+
+  for (const id of Object.keys(notified)) {
+    await db.collection('packs').doc(id).update({ data: { notifiedAt: now } })
+  }
+
+  return { ok: true, eligible: eligible.length, sent: sent, skipped: skipped, failed: failed }
+}
+
 exports.main = async function (event) {
   const action = (event && event.action) || 'pack'
 
@@ -198,6 +270,7 @@ exports.main = async function (event) {
     if (action === 'pack') return await runPack(event)
     if (action === 'patrol') return await runPatrol()
     if (action === 'execute') return await runExecute()
+    if (action === 'notify') return await runNotify()
     return { ok: false, msg: '未知 action: ' + action }
   } catch (e) {
     console.error('[packer]', action, e)

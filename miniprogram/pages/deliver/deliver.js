@@ -1,5 +1,6 @@
 const api = require('../../utils/api')
 const fmt = require('../../utils/format')
+const subscribe = require('../../utils/subscribe')
 
 Page({
   data: {
@@ -64,6 +65,30 @@ Page({
     })
   },
 
+  // 送达后问一句"要不要下课提醒我"。放在弹窗里确认，而不是静默调用
+  // —— 微信要求 requestSubscribeMessage 由用户点击触发，弹窗确认算一次有效点击
+  askSubscribe() {
+    const that = this
+    if (!subscribe.templateIds().length || !subscribe.canAskAgain(6)) {
+      setTimeout(function () { wx.switchTab({ url: '/pages/order/order' }) }, 700)
+      return
+    }
+
+    wx.showModal({
+      title: '要开下课提醒吗',
+      content: '下课前 10 分钟提醒你有顺路包，一天最多 3 次，不会刷屏。',
+      confirmText: '开启',
+      cancelText: '再说',
+      success: function (res) {
+        const done = function () {
+          setTimeout(function () { wx.switchTab({ url: '/pages/order/order' }) }, 500)
+        }
+        if (!res.confirm) return done()
+        subscribe.request().then(done).catch(done)
+      },
+    })
+  },
+
   submit() {
     if (this.data.submitting) return
     if (!this.data.allPicked) {
@@ -79,9 +104,8 @@ Page({
     api.deliverPack(this.packId, this.data.photo)
       .then(function () {
         wx.showToast({ title: '送达完成', icon: 'success' })
-        setTimeout(function () {
-          wx.switchTab({ url: '/pages/order/order' })
-        }, 700)
+        // 这一刻用户刚拿到钱，是请求订阅授权通过率最高的时机
+        that.askSubscribe()
       })
       .catch(function (e) {
         that.setData({ submitting: false })

@@ -4,10 +4,11 @@
   "version": "0.2.0",
   "description": "顺路 · 校园动线众包（学生端小程序 + 成包器 + 运营后台）",
   "scripts": {
-    "test": "node scripts/test-engine.js && node scripts/test-admin.js && node scripts/smoke.js",
+    "test": "node scripts/test-engine.js && node scripts/test-admin.js && node scripts/test-notify.js && node scripts/smoke.js",
     "test:engine": "node scripts/test-engine.js",
     "test:app": "node scripts/smoke.js",
     "admin": "node admin/server.js",
-    "test:admin": "node scripts/test-admin.js"
+    "test:admin": "node scripts/test-admin.js",
+    "test:notify": "node scripts/test-notify.js"
   }
 }

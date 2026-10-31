@@ -171,3 +171,18 @@
 | `handled` | boolean | 重派时置为 true |
 
 **索引**：`(tenantId, handled)`
+
+---
+
+## notification_logs —— 推送记录（节流依据）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `openid` | string | 收推送的学生 |
+| `packId` | string | 推的哪个包 |
+| `type` | string | `wave_preview` 等 |
+| `at` | number | 发送时间，**每小时/每天上限按它算** |
+
+**索引**：`(openid, at)` —— 节流查询走这条，别全表扫
+
+> 这张表同时是"服务态度"的证据链：学生投诉推太多，直接拉记录说话。
