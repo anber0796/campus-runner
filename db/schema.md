@@ -115,3 +115,59 @@
 | `orders` / `wallet_logs` | 仅管理员可读写 |
 
 > 所有查询都走云函数，客户端不直连数据库 —— 这是 `packs.list` 里楼栋/波次过滤不被绕过的前提。
+
+---
+
+## admins —— 运营后台账号
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `username` | string | 登录名 |
+| `salt` / `hash` | string | PBKDF2-SHA256 加盐哈希，**不存明文** |
+| `role` | string | `owner` / `operator` |
+| `createdAt` | number | 创建时间 |
+
+**索引**：`username`（唯一）
+
+---
+
+## admin_sessions —— 登录会话
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `token` | string | 48 位随机 hex，`crypto.randomBytes(24)` |
+| `adminId` | string | 关联 admins |
+| `role` | string | 冗余一份，省一次查 |
+| `expiresAt` | number | 12 小时后过期 |
+
+**索引**：`token`（唯一）、`expiresAt`（清理用）
+
+> 为什么不用 JWT：JWT 一旦密钥泄露就是全网可伪造，且无法撤回。会话表可以随时删除来吊销。
+
+---
+
+## credit_logs —— 信用分流水
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `openid` / `studentId` | string | 被扣分的学生 |
+| `delta` | number | 负数，例如 −5 |
+| `reason` | string | `recycle` 等 |
+| `packId` | string | 关联包 |
+| `at` | number | 发生时间，**按当天累计判断冻结** |
+
+**索引**：`(openid, at)`
+
+---
+
+## alerts —— 调度告警
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `type` | string | `fallback` / `recycle` / `freeze` / `deliver_timeout` |
+| `packId` | string | 关联包 |
+| `severity` | string | `high` / `medium` |
+| `message` | string | 给调度看的一句话 |
+| `handled` | boolean | 重派时置为 true |
+
+**索引**：`(tenantId, handled)`

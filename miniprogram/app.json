@@ -6,7 +6,9 @@
     "pages/order/order",
     "pages/wallet/wallet",
     "pages/me/me",
-    "pages/register/register"
+    "pages/register/register",
+    "pages/admin/login/login",
+    "pages/admin/dashboard/dashboard"
   ],
   "window": {
     "backgroundTextStyle": "dark",

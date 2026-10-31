@@ -1,0 +1,57 @@
+.login-wrap {
+  padding: 80rpx 40rpx;
+}
+
+.login-head {
+  text-align: center;
+  margin-bottom: 56rpx;
+}
+
+.logo {
+  width: 108rpx;
+  height: 108rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #1f9d55, #2bb96a);
+  color: #fff;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 108rpx;
+}
+
+.login-title {
+  font-size: 38rpx;
+  font-weight: 600;
+}
+
+.login-sub {
+  font-size: 24rpx;
+  color: #8a8f99;
+  margin-top: 10rpx;
+}
+
+.error {
+  color: #d93b3b;
+  font-size: 24rpx;
+  margin-top: 20rpx;
+  padding-left: 8rpx;
+}
+
+.mt24 {
+  margin-top: 24rpx;
+}
+
+.switch-mode {
+  text-align: center;
+  font-size: 26rpx;
+  color: #1f9d55;
+  margin-top: 36rpx;
+}
+
+.foot-note {
+  text-align: center;
+  font-size: 22rpx;
+  color: #a9aeb5;
+  margin-top: 80rpx;
+  line-height: 1.7;
+}

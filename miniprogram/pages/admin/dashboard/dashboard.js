@@ -1,0 +1,110 @@
+const adminApi = require('../../utils/adminApi')
+
+const STATUS = {
+  available: { text: '待派', cls: 'tag' },
+  accepted: { text: '已接单', cls: 'tag tag-green' },
+  picked: { text: '已取餐', cls: 'tag' },
+  fallback: { text: '已回落', cls: 'tag tag-amber' },
+  delivered: { text: '已送达', cls: 'tag tag-green' },
+}
+
+Page({
+  data: {
+    username: '',
+    loading: true,
+    error: '',
+    stats: null,
+    packs: [],
+    alerts: [],
+    executing: false,
+  },
+
+  onShow() {
+    if (!adminApi.getToken()) {
+      wx.redirectTo({ url: '/pages/admin/login/login' })
+      return
+    }
+    this.setData({ username: adminApi.getUsername() })
+    this.load()
+  },
+
+  onPullDownRefresh() {
+    this.load()
+    wx.stopPullDownRefresh()
+  },
+
+  load() {
+    const that = this
+    this.setData({ loading: true, error: '' })
+    adminApi.stats()
+      .then(function (s) {
+        that.setData({
+          loading: false,
+          stats: s,
+          packs: (s.packs || []).map(function (p) {
+            const st = STATUS[p.status] || { text: p.status, cls: 'tag tag-gray' }
+            return Object.assign({}, p, {
+              statusText: st.text,
+              statusClass: st.cls,
+              tailText: (p.tails || []).join(' / '),
+              incomeText: '¥' + (p.income || 0),
+            })
+          }),
+          alerts: s.alerts || [],
+        })
+      })
+      .catch(function (e) {
+        if (e.code === 401) {
+          wx.redirectTo({ url: '/pages/admin/login/login' })
+          return
+        }
+        that.setData({ loading: false, error: e.message || '加载失败' })
+      })
+  },
+
+  // 巡检 + 执行：无人接的回落、接单不动的回收并扣分
+  execute() {
+    if (this.data.executing) return
+    const that = this
+    this.setData({ executing: true })
+    adminApi.execute()
+      .then(function (r) {
+        that.setData({ executing: false })
+        if (!r.applied) {
+          wx.showToast({ title: '没有需要执行的动作', icon: 'none' })
+        } else {
+          wx.showToast({ title: '已处理 ' + r.applied + ' 条', icon: 'success' })
+        }
+        that.load()
+      })
+      .catch(function (e) {
+        that.setData({ executing: false })
+        wx.showToast({ title: e.message || '执行失败', icon: 'none' })
+      })
+  },
+
+  republish(e) {
+    const that = this
+    const packId = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '重派回池',
+      content: '把这个包放回池子重新推送？相关告警会标记为已处理。',
+      success: function (res) {
+        if (!res.confirm) return
+        adminApi.republish(packId)
+          .then(function () {
+            wx.showToast({ title: '已重派', icon: 'success' })
+            that.load()
+          })
+          .catch(function (err) {
+            wx.showToast({ title: err.message || '重派失败', icon: 'none' })
+          })
+      },
+    })
+  },
+
+  logout() {
+    adminApi.clearSession()
+    wx.redirectTo({ url: '/pages/admin/login/login' })
+  },
+})

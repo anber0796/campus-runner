@@ -75,6 +75,10 @@
       <text class="menu-label">健康证 / 保险</text>
       <text class="menu-value">{{student.healthExpire || '待上传'}}<text class="arrow">›</text></text>
     </view>
+    <view class="menu-item" bindtap="goAdmin">
+      <text class="menu-label">运营后台</text>
+      <text class="menu-value">仅运营人员<text class="arrow">›</text></text>
+    </view>
     <view class="menu-item">
       <text class="menu-label">关于</text>
       <text class="menu-value">v0.1 MVP<text class="arrow">›</text></text>

@@ -1,0 +1,35 @@
+<view class="login-wrap">
+  <view class="login-head">
+    <view class="logo">顺</view>
+    <view class="login-title">运营后台</view>
+    <view class="login-sub">{{mode === 'bootstrap' ? '首次初始化管理员账号' : '仅限运营人员登录'}}</view>
+  </view>
+
+  <view class="card">
+    <view class="field">
+      <text class="field-label">账号</text>
+      <input class="field-input" placeholder="用户名" placeholder-class="field-placeholder"
+             value="{{username}}" bindinput="onInput" data-field="username" />
+    </view>
+    <view class="field">
+      <text class="field-label">密码</text>
+      <input class="field-input" password placeholder="至少 8 位"
+             placeholder-class="field-placeholder" value="{{password}}"
+             bindinput="onInput" data-field="password" />
+    </view>
+  </view>
+
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+
+  <button class="btn-primary mt24" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
+    {{mode === 'bootstrap' ? '创建并登录' : '登录'}}
+  </button>
+
+  <view class="switch-mode" bindtap="toggleMode">
+    {{mode === 'bootstrap' ? '已有账号，去登录' : '第一次使用？初始化管理员'}}
+  </view>
+
+  <view class="foot-note">
+    账号密码在云函数里用 PBKDF2 加盐存储，登录后签发 12 小时有效的 token
+  </view>
+</view>

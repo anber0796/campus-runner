@@ -24,6 +24,7 @@ npm test
 ```
 
 - `scripts/test-engine.js` —— 成包器 + 巡检 + 兜底执行器的 28 项不变量断言
+- `scripts/test-admin.js` —— 后台鉴权 19 项断言（含用假数据库跑通真实 `route()` 的越权测试）
 - `scripts/smoke.js` —— 学生端 13 项链路断言
 
 **小程序**：微信开发者工具导入 `campus-runner` 目录即可，默认 `USE_MOCK = true`，不需要云开发环境、不需要 AppID（测试号也行）。
@@ -56,9 +57,10 @@ campus-runner/
 │   │   ├── index.js        action 路由入口
 │   │   ├── handlers/       student / packs / deliver / wallet / orders
 │   │   └── lib/            commission / waves / statemachine / guard / errors
-│   └── packer/             成包器（纯函数，可单测）
-│       ├── index.js        云函数入口
-│       └── lib/            packer（成包）/ patrol（巡检）/ executor（执行）/ commission
+│   └── packer/             成包器 + 运营后台接口（共享同一套引擎）
+│       ├── index.js        云函数入口（pack / patrol / execute / admin.*）
+│       ├── handlers/       admin.js —— 登录、鉴权、指标、执行、重派
+│       └── lib/            packer / patrol / executor / auth / commission
 ├── admin/                  运营后台（本地，零依赖）
 │   ├── server.js           HTTP 服务 + 业务动作
 │   ├── data.json           运行时数据（已 gitignore，删掉即重置）
@@ -150,6 +152,45 @@ campus-runner/
 
 **为什么"无人接"不扣分**：没人接说明运力不足或定价太低，是运营的问题，不是学生的。扣分只会让运力池更干。
 
+
+## 上云与鉴权
+
+运营相关的接口挂在 **`packer` 云函数**下（`admin.*` 路由）。这不是偷懒，是刻意的：
+
+> `packer` 里已经有成包、巡检、执行、佣金四份引擎。拆成独立的管理云函数就得把这些引擎再复制一份，**改一处忘一处，两边算出的钱不一样**——这是这类系统最危险的事故。所以按 action 前缀分两组接口，代码层面仍是一份引擎。
+
+### 鉴权怎么做的
+
+| 环节 | 做法 | 为什么 |
+|---|---|---|
+| 存密码 | PBKDF2-SHA256，10 万次迭代，每人独立盐 | 不存明文，也防彩虹表 |
+| 校验 | `crypto.timingSafeEqual` | 防时序侧信道 |
+| 换 token | `randomBytes(24)` → 48 位 hex | 不可预测 |
+| 存会话 | `admin_sessions` 集合，12 小时过期 | **可以随时吊销** |
+| 不用 JWT | — | JWT 密钥泄露即全网可伪造，且发出去的撤不回 |
+
+所有 `admin.*` 接口除 `login` / `bootstrap` 外都强制校验 token，失效返回 401，客户端自动跳回登录页。
+
+`admin.bootstrap` 只在 `admins` 集合为空时可用——否则任何人都能凭空造一个管理员。
+
+### 手机调度台
+
+PRD 7.3 把「手机调度台」列为 P0：高峰时运营经理不可能坐在电脑前。所以后台没有做成网页，而是做成小程序里的两个页面：
+
+- `pages/admin/login` —— 登录 / 首次初始化
+- `pages/admin/dashboard` —— 包均单量、已回落数、待处理告警、包列表，支持「巡检并执行」和「重派回池」
+
+入口在「我的」页底部。**这是手机上真正能用的版本**，不需要买服务器、不需要域名、不需要 ICP。
+
+> 桌面版 Web 后台仍然保留在 `admin/`（本地 Node 服务），用来做演示和批量操作。它和云端共用同一份引擎，改逻辑只改 `cloudfunctions/packer/lib/`。
+
+### 部署清单
+
+1. 云开发建集合：`admins` `admin_sessions` `credit_logs` `alerts`（其余见 `db/schema.md`）
+2. 上传 `cloudfunctions/packer`，云端安装依赖
+3. 小程序里进「我的 → 运营后台 → 第一次使用？初始化管理员」，设一个 ≥8 位的密码
+4. 之后所有运营操作都走手机了
+
 ## 与 PRD 的对应关系
 | PRD 条目 | 落地位置 |
 |---|---|
@@ -163,6 +204,7 @@ campus-runner/
 | 8.7 三层唯一约束 | `lib/guard.js` + `orders.ingest` 的幂等处理 |
 | 8.7 旧状态覆盖新状态 | `lib/statemachine.js` 版本号条件更新 |
 | 7.1 学生端 P0 | 全部 7 个页面 |
+| 7.3 手机调度台（P0） | `pages/admin/dashboard` + `handlers/admin.js` |
 
 ---
 
@@ -170,7 +212,7 @@ campus-runner/
 
 | 项 | 说明 |
 |---|---|
-| **运营后台搬到云上** | 现在是本地版。上云要做管理员登录鉴权（token）、静态托管，以及把 `server.js` 的逻辑改成 `cloudfunctions/admin` |
+| **桌面版 Web 后台还没上云** | 本地 Node 版能演示，但只有小程序调度台上了云。Web 版要上云得接 CloudBase Web SDK 或做静态托管 |
 | **成包器接入定时触发** | 云函数入口写好了，但还没配定时触发器；现在是后台手动点「运行成包」 |
 | **回落后的通知** | 执行器会发告警，但还没接订阅消息/sms 真正通知调度员 |
 | **驻点批量指派台** | PRD 7.3 的 P0，目前只有单包指派，没有按波次批量生成指派清单 |

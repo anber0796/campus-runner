@@ -1,0 +1,67 @@
+<view class="container">
+
+  <view class="head">
+    <view>
+      <view class="head-title">调度台</view>
+      <view class="muted">{{username}} · 下拉刷新</view>
+    </view>
+    <view class="logout" bindtap="logout">退出</view>
+  </view>
+
+  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+
+  <block wx:if="{{stats}}">
+    <view class="stats">
+      <view class="stat">
+        <view class="stat-num">{{stats.packCount}}</view>
+        <view class="stat-label">顺路包</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num {{stats.avgOk ? 'good' : 'warn'}}">{{stats.avgOrdersPerPack}}</view>
+        <view class="stat-label">包均单量</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num {{stats.fallbackCount ? 'warn' : ''}}">{{stats.fallbackCount}}</view>
+        <view class="stat-label">已回落</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num {{stats.alertCount ? 'warn' : ''}}">{{stats.alertCount}}</view>
+        <view class="stat-label">待处理</view>
+      </view>
+    </view>
+
+    <button class="btn-primary" bindtap="execute" loading="{{executing}}" disabled="{{executing}}">
+      巡检并执行{{stats.patrol ? '（有 ' + stats.patrol + ' 条待处理）' : ''}}
+    </button>
+
+    <!-- 告警 -->
+    <view class="section-title">待处理告警</view>
+    <view class="card" wx:if="{{alerts.length}}">
+      <view class="alert-row" wx:for="{{alerts}}" wx:key="id">
+        <view class="alert-dot {{item.severity === 'high' ? 'high' : 'mid'}}"></view>
+        <view class="alert-text">{{item.message}}</view>
+      </view>
+    </view>
+    <view class="card empty-card" wx:else>暂无告警</view>
+
+    <!-- 包列表 -->
+    <view class="section-title">顺路包</view>
+    <view class="card pack" wx:for="{{packs}}" wx:key="id">
+      <view class="row-between">
+        <view class="pack-title">{{item.buildingId}} · {{item.canteenId}} · {{item.orderCount}} 单</view>
+        <view class="{{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="muted mt8">尾号 {{item.tailText}}</view>
+      <view class="row-between mt12">
+        <view class="muted">{{item.incomeText}}</view>
+        <view class="republish" wx:if="{{item.status === 'fallback'}}" bindtap="republish" data-id="{{item.id}}">
+          重派回池
+        </view>
+      </view>
+    </view>
+    <view class="card empty-card" wx:if="{{!packs.length}}">没有进行中的包</view>
+  </block>
+
+  <view class="card empty-card" wx:elif="{{loading}}">加载中…</view>
+
+</view>

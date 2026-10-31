@@ -53,4 +53,8 @@ Page({
   goOrder() {
     wx.switchTab({ url: '/pages/order/order' })
   },
+
+  goAdmin() {
+    wx.navigateTo({ url: '/pages/admin/login/login' })
+  },
 })

@@ -184,6 +184,16 @@ async function runExecute() {
 
 exports.main = async function (event) {
   const action = (event && event.action) || 'pack'
+
+  // 运营后台接口走独立路由（自带 token 鉴权）
+  if (String(action).indexOf('admin.') === 0) {
+    return require('./handlers/admin').route({
+      event: event,
+      db: db,
+      ctx: cloud.getWXContext(),
+    })
+  }
+
   try {
     if (action === 'pack') return await runPack(event)
     if (action === 'patrol') return await runPatrol()
