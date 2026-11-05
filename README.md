@@ -91,6 +91,7 @@ campus-runner/
 │   ├── data.json           运行时数据（已 gitignore，删掉即重置）
 │   └── public/             中文界面
 ├── db/schema.md            集合、索引、安全规则
+├── docs/设计原则.md        界面设计原则、字段白名单、上线前自查表
 └── scripts/
     ├── test-engine.js      成包器单元测试
     └── smoke.js            学生端链路冒烟测试
