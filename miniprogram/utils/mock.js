@@ -134,7 +134,8 @@ const handlers = {
   'student.save': function (payload) {
     const p = payload.profile || {}
     state.student = Object.assign({}, state.student, p, {
-      status: 'active',
+      // 只填了第一步 → pending；补齐后 → active
+      status: payload.partial ? 'pending' : 'active',
       needRegister: false,
       healthExpire: p.healthExpire || '2027-03-01',
     })

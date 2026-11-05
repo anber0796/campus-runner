@@ -68,3 +68,75 @@
   font-size: 24rpx;
   margin: 0 0 0 12rpx;
 }
+
+/* 步骤条 */
+.steps {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 40rpx 28rpx;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 150rpx;
+}
+
+.dot {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #e6e8eb;
+  color: #6b7280;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.dot.on {
+  background: #1f9d55;
+  color: #fff;
+}
+
+.step-label {
+  font-size: 23rpx;
+  color: #6b7280;
+  margin-top: 10rpx;
+}
+
+.step-label.cur {
+  color: #1f9d55;
+  font-weight: 600;
+}
+
+.step-line {
+  flex: 1;
+  height: 3rpx;
+  background: #e6e8eb;
+  margin-top: 28rpx;
+}
+
+.step-line.on {
+  background: #1f9d55;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #3d424a;
+  background: #eef7ff;
+  border-left: 8rpx solid #3b6ef6;
+  border-radius: 12rpx;
+  padding: 20rpx 22rpx;
+  line-height: 1.7;
+  margin-bottom: 24rpx;
+}
+
+.back-link {
+  text-align: center;
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 28rpx;
+  padding: 16rpx;
+}

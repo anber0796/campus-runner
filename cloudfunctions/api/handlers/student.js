@@ -39,9 +39,9 @@ module.exports = {
       vehicle: p.vehicle || 'walk',
       platformRiderId: p.platformRiderId || '',
       healthExpire: p.healthExpire || '',
-      // TODO(合规)：生产环境这里应先落 pending，由运营核对健康证后再置 active。
-      // MVP 阶段为了跑通链路先直接激活。
-      status: 'active',
+      // 两步注册：第一步只存基础信息，状态 pending（能看不能接）；
+      // 第二步补齐资质与动线后才置 active（可以接单）。
+      status: args.event.partial ? 'pending' : 'active',
       updatedAt: Date.now(),
     }
 

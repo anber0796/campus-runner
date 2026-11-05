@@ -1,126 +1,152 @@
 <view class="container">
 
-  <view class="section-title">实名信息</view>
-  <view class="card">
-    <view class="field">
-      <text class="field-label">姓名</text>
-      <input class="field-input" placeholder="与学籍一致" placeholder-class="field-placeholder"
-             value="{{form.name}}" bindinput="onInput" data-field="name" />
+  <!-- 步骤条 -->
+  <view class="steps">
+    <view class="step-item">
+      <view class="dot {{step >= 1 ? 'on' : ''}}">1</view>
+      <view class="step-label {{step === 1 ? 'cur' : ''}}">基础信息</view>
     </view>
-    <view class="field">
-      <text class="field-label">学号</text>
-      <input class="field-input" placeholder="例如 2022318070" placeholder-class="field-placeholder"
-             value="{{form.studentNo}}" bindinput="onInput" data-field="studentNo" />
-    </view>
-    <view class="field">
-      <text class="field-label">手机号</text>
-      <input class="field-input" type="number" maxlength="11" placeholder="用于接收接单通知"
-             placeholder-class="field-placeholder" value="{{form.phone}}" bindinput="onInput" data-field="phone" />
-    </view>
-    <picker mode="selector" range="{{buildings}}" value="{{buildingIndex}}" bindchange="onBuildingChange">
-      <view class="field">
-        <text class="field-label">宿舍楼</text>
-        <view class="field-input field-picker">{{buildings[buildingIndex]}}<text class="arrow">›</text></view>
-      </view>
-    </picker>
-    <view class="field">
-      <text class="field-label">寝室号</text>
-      <input class="field-input" placeholder="例如 512" placeholder-class="field-placeholder"
-             value="{{form.room}}" bindinput="onInput" data-field="room" />
+    <view class="step-line {{step >= 2 ? 'on' : ''}}"></view>
+    <view class="step-item">
+      <view class="dot {{step >= 2 ? 'on' : ''}}">2</view>
+      <view class="step-label {{step === 2 ? 'cur' : ''}}">接单资质</view>
     </view>
   </view>
 
-  <view class="section-title">上课动线（决定推给你哪些单）</view>
-  <view class="card">
-    <picker mode="selector" range="{{teachings}}" value="{{teachingIndex}}" bindchange="onTeachingChange">
-      <view class="field">
-        <text class="field-label">常去教学楼</text>
-        <view class="field-input field-picker">{{teachings[teachingIndex]}}<text class="arrow">›</text></view>
-      </view>
-    </picker>
-    <picker mode="selector" range="{{dismissTimes}}" value="{{dismissIndex}}" bindchange="onDismissChange">
-      <view class="field">
-        <text class="field-label">下课时间</text>
-        <view class="field-input field-picker">{{dismissTimes[dismissIndex]}}<text class="arrow">›</text></view>
-      </view>
-    </picker>
-    <view class="field">
-      <text class="field-label">交通工具</text>
-      <view class="chips-inline">
-        <view wx:for="{{vehicles}}" wx:key="id"
-              class="chip chip-sm {{vehicle === item.id ? 'active' : ''}}"
-              bindtap="pickVehicle" data-id="{{item.id}}">{{item.name}}</view>
-      </view>
-    </view>
-  </view>
+  <!-- ================= 第一步：30 秒能填完 ================= -->
+  <block wx:if="{{step === 1}}">
+    <view class="hint">先填这 5 项，30 秒。资质和动线下一步再补，中途退出不会白填。</view>
 
-  <view class="section-title">可送楼栋（主楼必含，最多 3 栋）</view>
-  <view class="card">
-    <view class="chips">
-      <view wx:for="{{buildings}}" wx:key="*this"
-            class="chip {{selectedCoverage.indexOf(item) >= 0 ? 'active' : ''}}"
-            bindtap="toggleCoverage" data-name="{{item}}">{{item}}</view>
-    </view>
-    <view class="muted">多选邻楼能接更多单，但走的路也更多</view>
-  </view>
-
-  <view class="section-title">资质（合规前置）</view>
-  <view class="card">
-    <view class="cert-row" bindtap="uploadCert" data-type="studentCard">
-      <view>
-        <view class="menu-label">学生证 / 一卡通</view>
-        <view class="muted">证明你是本楼在籍学生</view>
-      </view>
-      <view class="{{certs.studentCard ? 'tag tag-green' : 'tag tag-amber'}}">
-        {{certs.studentCard ? '已上传' : '上传'}}
-      </view>
-    </view>
-    <view class="cert-row" bindtap="uploadCert" data-type="health">
-      <view>
-        <view class="menu-label">健康证</view>
-        <view class="muted">可参加校医院批量办理</view>
-      </view>
-      <view class="{{certs.health ? 'tag tag-green' : 'tag tag-amber'}}">
-        {{certs.health ? '已上传' : '上传'}}
-      </view>
-    </view>
-    <picker mode="date" value="{{form.healthExpire}}" bindchange="onDateChange">
+    <view class="card">
       <view class="field">
-        <text class="field-label">健康证到期</text>
-        <view class="field-input field-picker">
-          {{form.healthExpire || '请选择'}}<text class="arrow">›</text>
+        <text class="field-label">姓名</text>
+        <input class="field-input" placeholder="与学籍一致" placeholder-class="field-placeholder"
+               value="{{form.name}}" bindinput="onInput" data-field="name" />
+      </view>
+      <view class="field">
+        <text class="field-label">学号</text>
+        <input class="field-input" placeholder="例如 2022318070" placeholder-class="field-placeholder"
+               value="{{form.studentNo}}" bindinput="onInput" data-field="studentNo" />
+      </view>
+      <view class="field">
+        <text class="field-label">手机号</text>
+        <input class="field-input" type="number" maxlength="11" placeholder="接收接单通知"
+               placeholder-class="field-placeholder" value="{{form.phone}}" bindinput="onInput" data-field="phone" />
+      </view>
+      <picker mode="selector" range="{{buildings}}" value="{{buildingIndex}}" bindchange="onBuildingChange">
+        <view class="field">
+          <text class="field-label">宿舍楼</text>
+          <view class="field-input field-picker">{{buildings[buildingIndex]}}<text class="arrow">›</text></view>
+        </view>
+      </picker>
+      <view class="field">
+        <text class="field-label">寝室号</text>
+        <input class="field-input" placeholder="例如 512" placeholder-class="field-placeholder"
+               value="{{form.room}}" bindinput="onInput" data-field="room" />
+      </view>
+    </view>
+
+    <button class="btn-primary mt24" bindtap="nextStep" loading="{{submitting}}" disabled="{{submitting}}">
+      下一步
+    </button>
+  </block>
+
+  <!-- ================= 第二步：接单前必须齐 ================= -->
+  <block wx:else>
+    <view class="hint">这一步补齐才能接单：资质（合规要求）+ 动线（决定推给你哪些单）。</view>
+
+    <view class="section-title">资质（合规前置，必须）</view>
+    <view class="card">
+      <view class="cert-row" bindtap="uploadCert" data-type="studentCard">
+        <view>
+          <view class="menu-label">学生证 / 一卡通</view>
+          <view class="muted">证明你是本楼在籍学生</view>
+        </view>
+        <view class="{{certs.studentCard ? 'tag tag-green' : 'tag tag-amber'}}">
+          {{certs.studentCard ? '已上传' : '上传'}}
         </view>
       </view>
-    </picker>
-  </view>
-
-  <view class="section-title">你的动线（决定推给你哪些包）</view>
-  <view class="card">
-    <view class="muted">常去食堂（1～2 个）</view>
-    <view class="chips mt16">
-      <view wx:for="{{canteens}}" wx:key="id"
-            class="chip {{selectedCanteens.indexOf(item.id) >= 0 ? 'active' : ''}}"
-            bindtap="toggleCanteen" data-id="{{item.id}}">{{item.name}}</view>
+      <view class="cert-row" bindtap="uploadCert" data-type="health">
+        <view>
+          <view class="menu-label">健康证</view>
+          <view class="muted">可参加校医院批量办理</view>
+        </view>
+        <view class="{{certs.health ? 'tag tag-green' : 'tag tag-amber'}}">
+          {{certs.health ? '已上传' : '上传'}}
+        </view>
+      </view>
+      <picker mode="date" value="{{form.healthExpire}}" bindchange="onDateChange">
+        <view class="field">
+          <text class="field-label">健康证到期</text>
+          <view class="field-input field-picker">
+            {{form.healthExpire || '请选择'}}<text class="arrow">›</text>
+          </view>
+        </view>
+      </picker>
     </view>
 
-    <view class="divider"></view>
+    <view class="section-title">你的动线（决定推给你哪些单）</view>
+    <view class="card">
+      <view class="muted">常去食堂（1～2 个）</view>
+      <view class="chips mt16">
+        <view wx:for="{{canteens}}" wx:key="id"
+              class="chip {{selectedCanteens.indexOf(item.id) >= 0 ? 'active' : ''}}"
+              bindtap="toggleCanteen" data-id="{{item.id}}">{{item.name}}</view>
+      </view>
 
-    <view class="muted">下课波次（最多 3 个）</view>
-    <view class="chips mt16">
-      <view wx:for="{{waveOpts}}" wx:key="id"
-            class="chip {{selectedWaves.indexOf(item.id) >= 0 ? 'active' : ''}}"
-            bindtap="toggleWave" data-id="{{item.id}}">{{item.label}}</view>
+      <view class="divider"></view>
+
+      <view class="muted">下课波次（最多 3 个）</view>
+      <view class="chips mt16">
+        <view wx:for="{{waveOpts}}" wx:key="id"
+              class="chip {{selectedWaves.indexOf(item.id) >= 0 ? 'active' : ''}}"
+              bindtap="toggleWave" data-id="{{item.id}}">{{item.label}}</view>
+      </view>
+
+      <view class="divider"></view>
+
+      <picker mode="selector" range="{{teachings}}" value="{{teachingIndex}}" bindchange="onTeachingChange">
+        <view class="field">
+          <text class="field-label">常去教学楼</text>
+          <view class="field-input field-picker">{{teachings[teachingIndex]}}<text class="arrow">›</text></view>
+        </view>
+      </picker>
+      <picker mode="selector" range="{{dismissTimes}}" value="{{dismissIndex}}" bindchange="onDismissChange">
+        <view class="field">
+          <text class="field-label">下课时间</text>
+          <view class="field-input field-picker">{{dismissTimes[dismissIndex]}}<text class="arrow">›</text></view>
+        </view>
+      </picker>
+      <view class="field">
+        <text class="field-label">交通工具</text>
+        <view class="chips-inline">
+          <view wx:for="{{vehicles}}" wx:key="id"
+                class="chip chip-sm {{vehicle === item.id ? 'active' : ''}}"
+                bindtap="pickVehicle" data-id="{{item.id}}">{{item.name}}</view>
+        </view>
+      </view>
     </view>
-  </view>
 
-  <view class="agree-row" bindtap="toggleAgree">
-    <view class="checkbox {{agree ? 'checked' : ''}}">{{agree ? '✓' : ''}}</view>
-    <view class="agree-text">我已阅读并同意《勤工俭学代取服务协议》，知晓本服务为同学互助性质</view>
-  </view>
+    <view class="section-title">可送楼栋（主楼必含，最多 3 栋）</view>
+    <view class="card">
+      <view class="chips">
+        <view wx:for="{{buildings}}" wx:key="*this"
+              class="chip {{selectedCoverage.indexOf(item) >= 0 ? 'active' : ''}}"
+              bindtap="toggleCoverage" data-name="{{item}}">{{item}}</view>
+      </view>
+      <view class="muted">多选邻楼能接更多单，但走的路也更多</view>
+    </view>
 
-  <button class="btn-primary mt24" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
-    提交认证
-  </button>
+    <view class="agree-row" bindtap="toggleAgree">
+      <view class="checkbox {{agree ? 'checked' : ''}}">{{agree ? '✓' : ''}}</view>
+      <view class="agree-text">我已阅读并同意《勤工俭学代取服务协议》，知晓本服务为同学互助性质</view>
+    </view>
+
+    <button class="btn-primary mt24" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">
+      提交认证
+    </button>
+    <view class="back-link" bindtap="prevStep">← 返回上一步</view>
+  </block>
 
   <view class="foot-note">仅用于校内同学互助代取 · 全程步行配送</view>
 

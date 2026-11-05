@@ -32,8 +32,8 @@ module.exports = {
   getStudent: function () {
     return call('student.get')
   },
-  saveStudent: function (profile) {
-    return call('student.save', { profile: profile })
+  saveStudent: function (profile, partial) {
+    return call('student.save', { profile: profile, partial: !!partial })
   },
 
   // —— 顺路包 ——
