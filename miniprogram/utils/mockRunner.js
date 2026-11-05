@@ -69,6 +69,19 @@ const state = {
       claimDeadline: now + 12 * MINUTE,
     },
     {
+      id: 'P3', status: 'POOLED', buildingId: '5栋', buildingIds: ['5栋'],
+      floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
+      price: 1.1, orders: mkOrders(['5521', '8834', '1177'], 1), orderCount: 3,
+      claimDeadline: now + 14 * MINUTE,
+    },
+    {
+      id: 'P4', status: 'PICKED', buildingId: '3栋', buildingIds: ['3栋'],
+      floorBand: 'high', minFloor: 6, maxFloor: 7, waveId: 'W2',
+      price: 1.9, orders: mkOrders(['6601', '6602'], 6), orderCount: 2,
+      assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 20 * MINUTE,
+      pickedAt: now - 10 * MINUTE,
+    },
+    {
       id: 'P2', status: 'ASSIGNED', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
       floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: true,
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,
@@ -83,6 +96,13 @@ const state = {
   inviteCode: 'K7M2QP',
   invite: { registered: 7, firstOrdered: 4, amount: 0 },
 }
+
+// 已取餐的批次，订单要标成已取——否则「待送达」页里点不出送达按钮
+state.batches.forEach(function (b) {
+  if (b.status === 'PICKED') {
+    b.orders.forEach(function (o) { o.picked = true })
+  }
+})
 
 function delay(data) {
   return new Promise(function (resolve) {

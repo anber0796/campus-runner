@@ -2,52 +2,89 @@
 
   <view class="error-card" wx:if="{{error}}">{{error}}</view>
 
-  <view class="tabs">
-    <view class="tab {{tab === 'active' ? 'active' : ''}}" bindtap="switchTab" data-tab="active">
-      进行中 ({{active.length}})
+  <view class="tabs3">
+    <view class="tab3 {{tab === 'pool' ? 'active' : ''}}" bindtap="switchTab" data-tab="pool">
+      可抢单<text class="num" wx:if="{{pool.length}}">{{pool.length}}</text>
     </view>
-    <view class="tab {{tab === 'finished' ? 'active' : ''}}" bindtap="switchTab" data-tab="finished">
-      已完成 ({{finished.length}})
+    <view class="tab3 {{tab === 'pick' ? 'active' : ''}}" bindtap="switchTab" data-tab="pick">
+      待取餐<text class="num" wx:if="{{pick.length}}">{{pick.length}}</text>
+    </view>
+    <view class="tab3 {{tab === 'deliver' ? 'active' : ''}}" bindtap="switchTab" data-tab="deliver">
+      待送达<text class="num" wx:if="{{deliver.length}}">{{deliver.length}}</text>
     </view>
   </view>
 
-  <block wx:if="{{tab === 'active'}}">
-    <view class="task" wx:for="{{active}}" wx:key="id">
+  <!-- 可抢单 -->
+  <block wx:if="{{tab === 'pool'}}">
+    <view class="card pool-tip" wx:if="{{student}}">
+      {{student.name}} · 信用 {{student.credit}} · 今日已抢 {{student.claimsToday}} 批
+    </view>
+
+    <view class="task" wx:for="{{pool}}" wx:key="id">
       <view class="task-head">
         <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
-        <view class="{{item.statusClass}}">{{item.statusText}}</view>
+        <view class="earn">{{item.earnText}}</view>
       </view>
 
-      <view class="task-meta">{{item.orderCount}} 单 · 到手 {{item.earnText}}</view>
+      <view class="task-meta">
+        {{item.orderText}}<text class="dot">·</text>{{item.priceText}}<text class="dot">·</text>{{item.waveId}}
+      </view>
+
       <view class="tails">
         <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
       </view>
 
       <view class="task-foot">
         <view class="muted">取齐直接走，不用分拣</view>
-        <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">
-          {{item.status === 'PICKED' ? '去送达' : '去取餐'}}
-        </view>
+        <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{item.id}}">抢</view>
       </view>
     </view>
 
-    <view class="empty" wx:if="{{!active.length && !loading}}">
-      暂时没有指派给你的单{{'\n'}}下课前会集中分派
+    <view class="empty" wx:if="{{!pool.length && !loading}}">
+      暂时没有可抢的批次{{'\n'}}下课前会集中放单
     </view>
   </block>
 
-  <block wx:else>
-    <view class="task" wx:for="{{finished}}" wx:key="id">
+  <!-- 待取餐 -->
+  <block wx:elif="{{tab === 'pick'}}">
+    <view class="task" wx:for="{{pick}}" wx:key="id">
       <view class="task-head">
         <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
-        <view class="tag tag-green">已完成</view>
+        <view class="{{item.statusClass}}">{{item.statusText}}</view>
       </view>
-      <view class="task-meta">{{item.orderCount}} 单 · 到手 {{item.earnText}}</view>
+      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
       <view class="tails">
         <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
       </view>
+      <view class="task-foot">
+        <view class="muted">到档口扫码或手输运单号</view>
+        <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去取餐</view>
+      </view>
     </view>
-    <view class="empty" wx:if="{{!finished.length && !loading}}">还没有完成的单</view>
+
+    <view class="empty" wx:if="{{!pick.length && !loading}}">
+      没有待取餐的批次{{'\n'}}去「可抢单」抢一单，或等运营指派
+    </view>
+  </block>
+
+  <!-- 待送达 -->
+  <block wx:else>
+    <view class="task" wx:for="{{deliver}}" wx:key="id">
+      <view class="task-head">
+        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view class="{{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
+      <view class="tails">
+        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+      </view>
+      <view class="task-foot">
+        <view class="muted">送到门口拍照留证</view>
+        <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去送达</view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!deliver.length && !loading}}">没有待送达的批次</view>
   </block>
 
   <view class="empty" wx:if="{{loading}}">加载中…</view>
