@@ -8,7 +8,9 @@
     "pages/me/me",
     "pages/register/register",
     "pages/admin/login/login",
-    "pages/admin/dashboard/dashboard"
+    "pages/admin/dashboard/dashboard",
+    "pages/grab/grab",
+    "pages/invite/invite"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -23,10 +25,22 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/index/index", "text": "顺路包" },
-      { "pagePath": "pages/order/order", "text": "我的单" },
-      { "pagePath": "pages/wallet/wallet", "text": "钱包" },
-      { "pagePath": "pages/me/me", "text": "我的" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "顺路包"
+      },
+      {
+        "pagePath": "pages/order/order",
+        "text": "我的单"
+      },
+      {
+        "pagePath": "pages/wallet/wallet",
+        "text": "钱包"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的"
+      }
     ]
   },
   "style": "v2",

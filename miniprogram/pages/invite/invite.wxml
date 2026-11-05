@@ -1,0 +1,56 @@
+<view class="container">
+
+  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+
+  <view class="hero">
+    <view class="hero-label">我的邀请码</view>
+    <view class="hero-code" bindtap="copyCode">{{code || '——'}}</view>
+    <view class="hero-tip">点一下复制，发给同学填</view>
+  </view>
+
+  <view class="card">
+    <view class="row-between">
+      <view class="stat">
+        <view class="stat-num">{{registered}}</view>
+        <view class="stat-label">已注册</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num">{{firstOrdered}}</view>
+        <view class="stat-label">已完成首单</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num money">¥{{amount}}</view>
+        <view class="stat-label">累计奖励</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="progress-line">
+      <text>满 10 人注册 → 奖 20 元</text>
+      <text class="muted">还差 {{nextRegisterGap}} 人</text>
+    </view>
+    <view class="progress-line">
+      <text>这 10 人完成首单 → 再奖 30 元</text>
+      <text class="muted">还差 {{nextOrderGap}} 人</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">填别人的邀请码</view>
+    <view class="muted mt8">每人只能被邀请一次</view>
+    <view class="bind-row">
+      <input class="bind-input" placeholder="输入 6 位邀请码" placeholder-class="ph"
+             value="{{inputCode}}" bindinput="onInput" maxlength="6" />
+      <view class="bind-btn" bindtap="bind">绑定</view>
+    </view>
+  </view>
+
+  <view class="rules">
+    <view>· 奖励按「团队」结算：每满 10 人算一组</view>
+    <view>· 首单须在注册后 7 天内完成，否则只算注册档</view>
+    <view>· 同一手机号、同一设备、自己邀自己都不算</view>
+    <view>· 奖励计入钱包，满 10 元可提现</view>
+  </view>
+
+</view>

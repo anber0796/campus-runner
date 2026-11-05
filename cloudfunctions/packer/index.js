@@ -257,6 +257,20 @@ async function runNotify() {
 exports.main = async function (event) {
   const action = (event && event.action) || 'pack'
 
+  // 骑手端接口（抢单大厅）——用 openid 认人，不需要 token
+  if (String(action).indexOf('rider.') === 0) {
+    const rider = require('./handlers/rider')
+    const fn = rider[action]
+    if (!fn) return { code: 404, msg: '未知骑手接口: ' + action }
+    try {
+      const data = await fn({ event: event, db: db, ctx: cloud.getWXContext() })
+      return { code: 0, data: data }
+    } catch (e) {
+      console.error('[rider]', action, e)
+      return { code: e.code || 500, msg: e.message || '服务器错误' }
+    }
+  }
+
   // 运营后台接口走独立路由（自带 token 鉴权）
   if (String(action).indexOf('admin.') === 0) {
     return require('./handlers/admin').route({
