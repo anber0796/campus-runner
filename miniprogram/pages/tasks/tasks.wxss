@@ -374,3 +374,76 @@
   padding: 6rpx 14rpx;
   margin: 0 12rpx 10rpx 0;
 }
+
+/* 可抢单：第一行 取→送→剩余 */
+.pool-card {
+  padding: 24rpx 26rpx;
+}
+
+.route-line {
+  display: flex;
+  align-items: center;
+}
+
+.route-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1c1f26;
+  margin-left: 12rpx;
+  max-width: 240rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-arrow {
+  font-size: 24rpx;
+  color: #c9cdd4;
+  margin: 0 14rpx;
+}
+
+.route-gap {
+  flex: 1;
+}
+
+/* 第二行：价格 */
+.money-line {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+
+.money-left {
+  display: flex;
+  align-items: baseline;
+}
+
+.earn-big {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #ff6a00;
+  line-height: 1;
+}
+
+.money-meta {
+  font-size: 23rpx;
+  color: #6b7280;
+  margin-left: 14rpx;
+}
+
+.money-right {
+  display: flex;
+  align-items: center;
+}
+
+.claim-left {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-right: 16rpx;
+}
+
+.claim-left.urgent {
+  color: #d93b3b;
+  font-weight: 600;
+}

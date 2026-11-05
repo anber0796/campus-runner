@@ -41,30 +41,32 @@
       {{student.name}} · 信用 {{student.credit}} · 今日已抢 {{student.claimsToday}} 批
     </view>
 
-    <view class="task" wx:for="{{pool}}" wx:key="id">
-      <view class="route-row">
+    <view class="task pool-card" wx:for="{{pool}}" wx:key="id">
+      <!-- 第一行：取哪、送哪、还剩多久 -->
+      <view class="route-line">
         <text class="route-tag pick">取</text>
-        <text class="route-main">{{item.canteenName}}</text>
-        <text class="earn">{{item.earnText}}</text>
-      </view>
+        <text class="route-name">{{item.canteenName}}</text>
 
-      <view class="route-row">
+        <text class="route-arrow">→</text>
+
         <text class="route-tag send">送</text>
-        <text class="route-main">{{item.buildingText}} · {{item.floorRange}}</text>
-      </view>
+        <text class="route-name send">{{item.buildingText}} · {{item.floorRange}}</text>
 
-      <view class="pool-meta">
+        <view class="route-gap"></view>
         <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
-        <text>{{item.orderText}}</text>
-        <text class="dot">·</text>
-        <text>{{item.walkText}}</text>
-        <text class="dot">·</text>
-        <text class="{{item.urgent ? 'urgent' : ''}}">{{item.leftText}}</text>
       </view>
 
-      <view class="task-foot">
-        <view class="muted">取齐直接走，不用分拣</view>
-        <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{item.id}}">抢</view>
+      <!-- 第二行：价格 + 次要信息 + 抢 -->
+      <view class="money-line">
+        <view class="money-left">
+          <text class="earn-big">{{item.earnText}}</text>
+          <text class="money-meta">{{item.orderText}} · {{item.walkText}}</text>
+        </view>
+
+        <view class="money-right">
+          <text class="claim-left {{item.urgent ? 'urgent' : ''}}">{{item.leftText}}</text>
+          <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{item.id}}">抢</view>
+        </view>
       </view>
     </view>
 
