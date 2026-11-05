@@ -124,3 +124,62 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+/* 楼栋 → 楼层 */
+.building-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #f0f1f3;
+}
+
+.building-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1c1f26;
+}
+
+.floor-block {
+  margin-top: 20rpx;
+}
+
+.floor-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.floor-badge {
+  width: 56rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  background: #eef7ff;
+  color: #3b6ef6;
+  font-size: 22rpx;
+  font-weight: 700;
+  margin-right: 14rpx;
+}
+
+.floor-count {
+  font-size: 23rpx;
+  color: #6b7280;
+}
+
+.order-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0 18rpx 70rpx;
+  border-bottom: 1rpx solid #f7f8fa;
+}
+
+.order-line:last-child {
+  border-bottom: none;
+}
+
+.order-info {
+  flex: 1;
+}

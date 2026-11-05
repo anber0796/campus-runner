@@ -2,37 +2,45 @@
 
   <view class="error-card" wx:if="{{error}}">{{error}}</view>
 
-  <block wx:if="{{current && !done}}">
+  <block wx:if="{{!done && total}}">
     <view class="card head-card">
       <view class="row-between">
         <view>
-          <view class="title">{{current.buildingIds ? current.buildingIds.join(' + ') : current.buildingId}}</view>
-          <view class="muted mt8">{{current.floorRange}} · 按楼层从上到下</view>
+          <view class="title">待送 {{total}} 单</view>
+          <view class="muted mt8">按楼栋 → 楼层从高到低，一趟走完</view>
         </view>
-        <view class="remain">剩 {{remaining}}</view>
       </view>
     </view>
 
-    <view class="card">
-      <view class="title">逐单送达</view>
-      <view class="muted mt8">点「送达」直接开相机，拍完即完成</view>
-
-      <view class="deliver-row" wx:for="{{list}}" wx:key="id">
-        <view class="deliver-info">
-          <view class="room">{{item.room}}</view>
-          <view class="muted">{{item.floor}} 层 · 尾号 {{item.tail}}</view>
-        </view>
-        <view class="deliver-btn {{busy ? 'disabled' : ''}}" bindtap="deliver" data-id="{{item.id}}">送达</view>
+    <!-- 楼栋 → 楼层 → 订单 -->
+    <view class="card" wx:for="{{groups}}" wx:key="buildingText" wx:for-item="g">
+      <view class="building-head">
+        <view class="building-name">{{g.buildingText}}</view>
+        <view class="muted">{{g.count}} 单</view>
       </view>
 
-      <view class="muted" wx:if="{{!list.length}}">都送完了</view>
+      <view class="floor-block" wx:for="{{g.floors}}" wx:key="floor" wx:for-item="f">
+        <view class="floor-row">
+          <text class="floor-badge">{{f.floor}}F</text>
+          <text class="floor-count">{{f.count}} 单</text>
+        </view>
+
+        <view class="order-line" wx:for="{{f.orders}}" wx:key="id" wx:for-item="o">
+          <view class="order-info">
+            <view class="room">{{o.room}}</view>
+            <view class="muted">尾号 {{o.tail}}</view>
+          </view>
+          <view class="deliver-btn {{busy ? 'disabled' : ''}}" bindtap="deliver"
+                data-id="{{o.id}}" data-batch="{{o.batchId}}">送达</view>
+        </view>
+      </view>
     </view>
   </block>
 
   <!-- 全部送完 -->
   <view class="card done-card" wx:if="{{done && !loading}}">
     <view class="done-icon">✓</view>
-    <view class="done-title">这一批送完了</view>
+    <view class="done-title">都送完了</view>
     <view class="muted mt8">收入已计入待结算，24 小时后可提现</view>
     <view class="done-btn" bindtap="goTasks">回到我的任务</view>
   </view>
@@ -42,7 +50,7 @@
   <view class="bottom-bar" wx:if="{{primary && !done}}">
     <view class="bottom-info">
       <view class="bottom-label">送达 {{primary.tail}}</view>
-      <view class="bottom-sub">还剩 {{remaining}} 单</view>
+      <view class="bottom-sub">还剩 {{total}} 单</view>
     </view>
     <view class="bottom-btn {{busy ? 'disabled' : ''}}" bindtap="primaryTap">拍照送达</view>
   </view>

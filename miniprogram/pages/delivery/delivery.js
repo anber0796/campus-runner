@@ -1,19 +1,57 @@
 const riderApi = require('../../utils/riderApi')
 
+/**
+ * 把多个批次的待送订单打散，重新按「楼栋 → 楼层（降序）」组织。
+ *
+ * 为什么不能按批次走：一个骑手手上可能同时有两批，一批送 3 栋、一批送 5 栋。
+ * 按批次做就是 3栋→(回食堂)→5栋，来回跑；打散之后变成 3栋→5栋，一趟走完。
+ * 楼栋内按楼层从高到低，送完一路往下。
+ */
+function groupOrders(all) {
+  const byBuilding = {}
+  all.forEach(function (o) {
+    const k = o.buildingText || o.buildingId || '未知楼栋'
+    if (!byBuilding[k]) byBuilding[k] = []
+    byBuilding[k].push(o)
+  })
+
+  return Object.keys(byBuilding).sort().map(function (k) {
+    const list = byBuilding[k].slice().sort(function (a, b) {
+      return (b.floor || 0) - (a.floor || 0)
+    })
+
+    const byFloor = {}
+    list.forEach(function (o) {
+      const f = o.floor || 0
+      if (!byFloor[f]) byFloor[f] = []
+      byFloor[f].push(o)
+    })
+
+    const floors = Object.keys(byFloor)
+      .map(Number)
+      .sort(function (a, b) { return b - a })
+      .map(function (f) {
+        return {
+          floor: f,
+          label: f + ' 层',
+          count: byFloor[f].length,
+          orders: byFloor[f],
+        }
+      })
+
+    return { buildingText: k, count: list.length, floors: floors }
+  })
+}
+
 Page({
   data: {
     loading: true,
     error: '',
-    current: null,
-    list: [],
-    remaining: 0,
+    groups: [],
+    total: 0,
     done: false,
     busy: false,
     primary: null,
-  },
-
-  onLoad(query) {
-    this.wantId = (query && query.id) || ''
   },
 
   onShow() {
@@ -33,41 +71,45 @@ Page({
       .myBatches()
       .then(function (d) {
         const active = d.active || []
-        const target = that.wantId
-          ? active.filter(function (b) { return b.id === that.wantId })[0]
-          : active[0]
+        const all = []
 
-        if (!target) {
-          that.setData({ loading: false, current: null, list: [], done: true, primary: null })
+        // 把每一批里"已取未送"的单抽出来，并记住它属于哪一批
+        active.forEach(function (b) {
+          ;(b.orderList || []).forEach(function (o) {
+            if (o.picked && !o.delivered) {
+              all.push(Object.assign({}, o, {
+                batchId: b.id,
+                buildingText: (b.buildingIds || [b.buildingId]).join('+'),
+                buildingId: b.buildingId,
+              }))
+            }
+          })
+        })
+
+        if (!all.length) {
+          that.setData({ loading: false, groups: [], total: 0, done: true, primary: null })
           return
         }
-        that.render(target)
+
+        // 全局排序后的下一单，供底部主按钮用
+        const sorted = all.slice().sort(function (a, b) {
+          const ba = String(a.buildingText || '')
+          const bb = String(b.buildingText || '')
+          if (ba !== bb) return ba.localeCompare(bb)
+          return (b.floor || 0) - (a.floor || 0)
+        })
+
+        that.setData({
+          loading: false,
+          groups: groupOrders(all),
+          total: all.length,
+          done: false,
+          primary: { targetId: sorted[0].id, batchId: sorted[0].batchId, tail: sorted[0].tail },
+        })
       })
       .catch(function (e) {
         that.setData({ loading: false, error: e.message || '加载失败' })
       })
-  },
-
-  render(batch) {
-    // 只列还没送的，按寝室楼层从高到低——送完一路往下走
-    const list = (batch.orderList || [])
-      .filter(function (o) { return o.picked && !o.delivered })
-      .slice()
-      .sort(function (a, b) { return (b.floor || 0) - (a.floor || 0) })
-
-    const remaining = list.length
-    const primary = remaining
-      ? { targetId: list[0].id, tail: list[0].tail }
-      : null
-
-    this.setData({
-      loading: false,
-      current: batch,
-      list: list,
-      remaining: remaining,
-      done: remaining === 0,
-      primary: primary,
-    })
   },
 
   // 点一下直接开相机，拍完自动提交
@@ -75,6 +117,7 @@ Page({
     if (this.data.busy) return
     const that = this
     const orderId = e.currentTarget.dataset.id
+    const batchId = e.currentTarget.dataset.batch
 
     wx.chooseMedia({
       count: 1,
@@ -85,7 +128,7 @@ Page({
         const photo = res.tempFiles[0].tempFilePath
         that.setData({ busy: true })
         riderApi
-          .deliver(that.data.current.id, orderId, photo)
+          .deliver(batchId, orderId, photo)
           .then(function () {
             that.setData({ busy: false })
             wx.showToast({ title: '已送达', icon: 'success' })
@@ -102,7 +145,7 @@ Page({
   primaryTap() {
     const p = this.data.primary
     if (!p || this.data.busy) return
-    this.deliver({ currentTarget: { dataset: { id: p.targetId } } })
+    this.deliver({ currentTarget: { dataset: { id: p.targetId, batch: p.batchId } } })
   },
 
   goTasks() {
