@@ -67,3 +67,28 @@
   line-height: 1.9;
   padding: 8rpx 12rpx;
 }
+
+.wallet-btn.disabled {
+  background: rgba(255, 255, 255, 0.55);
+  color: #7fbf9a;
+}
+
+.rule-tip {
+  font-size: 22rpx;
+  color: #8a8f99;
+  line-height: 1.7;
+  padding: 4rpx 12rpx 8rpx;
+}
+
+.log-amount.out {
+  color: #5b6068;
+}
+
+.error-card {
+  background: #fdecec;
+  color: #d93b3b;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 25rpx;
+  margin-bottom: 24rpx;
+}

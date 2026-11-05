@@ -7,6 +7,7 @@
  */
 const claim = require('../lib/claim')
 const invite = require('../lib/invite')
+const settlement = require('../lib/settlement')
 const config = require('../lib/config')
 const { AppError } = require('../lib/errors')
 
@@ -272,6 +273,51 @@ module.exports = {
     }
 
     return { ok: true, allDone: allDone }
+  },
+
+  /** 钱包：余额 + 流水 */
+  'rider.wallet': async function (args) {
+    const db = args.db
+    const openid = args.ctx.OPENID
+    const logs = await fetchAll(db.collection('wallet_logs').where({ openid: openid }))
+
+    const b = settlement.balance(logs)
+    const sorted = logs.slice().sort(function (a, c) {
+      return (c.createdAt || 0) - (a.createdAt || 0)
+    })
+
+    return {
+      balance: b,
+      logs: sorted.slice(0, 50),
+      todayWithdrawals: settlement.withdrawalsToday(logs, Date.now()),
+    }
+  },
+
+  /** 提现申请：先校验，再落一条负数流水（不接支付，等运营打款） */
+  'rider.withdraw': async function (args) {
+    const db = args.db
+    const openid = args.ctx.OPENID
+    const amount = Number(args.event.amount)
+
+    const logs = await fetchAll(db.collection('wallet_logs').where({ openid: openid }))
+    const b = settlement.balance(logs)
+
+    const check = settlement.canWithdraw({
+      available: b.available,
+      amount: amount,
+      withdrawalsToday: settlement.withdrawalsToday(logs, Date.now()),
+    })
+    if (!check.ok) throw AppError(400, check.reason)
+
+    await db.collection('wallet_logs').add({
+      data: Object.assign(
+        { tenantId: config.TENANT_ID, openid: openid },
+        settlement.buildWithdrawLog(openid, check.amount, Date.now())
+      ),
+    })
+
+    const fresh = await fetchAll(db.collection('wallet_logs').where({ openid: openid }))
+    return { ok: true, balance: settlement.balance(fresh) }
   },
 
   /** 我的邀请码与进度 */

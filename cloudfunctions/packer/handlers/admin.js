@@ -12,6 +12,7 @@ const { AppError } = require('../lib/errors')
 const config = require('../lib/config')
 const executor = require('../lib/executor')
 const pricing = require('../lib/pricing')
+const settlement = require('../lib/settlement')
 const { patrol } = require('../lib/patrol')
 
 const SESSION = 'admin_sessions'
@@ -390,6 +391,33 @@ async function publishAll(args) {
   return { published: published, total: list.length }
 }
 
+/**
+ * 结算：把到期（T+1）的待结算收入转成可提现。
+ * 建议配每日定时触发器，例如凌晨 3 点：0 0 3 * * * *
+ */
+async function settleWallets(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+  const pending = await fetchAll(db.collection('wallet_logs').where({
+    tenantId: tenantId,
+    type: 'claim_income',
+    status: 'pending',
+  }))
+
+  const result = settlement.settleDue(pending, Date.now())
+  let updated = 0
+
+  for (const log of result.logs) {
+    if (log.status !== 'settled') continue
+    await db.collection('wallet_logs').doc(log._id).update({
+      data: { status: 'settled', settledAt: log.settledAt },
+    })
+    updated++
+  }
+
+  return { ok: true, scanned: pending.length, settled: updated, amount: result.settledAmount }
+}
+
 // ---------------------------------------------------------------- 路由表
 
 
@@ -403,6 +431,7 @@ const HANDLERS = {
   'admin.pendingBatches': { fn: pendingBatches },
   'admin.publishBatch': { fn: publishBatch },
   'admin.publishAll': { fn: publishAll },
+  'admin.settle': { fn: settleWallets },
 }
 
 /**

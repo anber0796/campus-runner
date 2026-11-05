@@ -3,10 +3,11 @@
  * 和 api.js 的区别：那套是旧的"顺路包"模型，这套是"抢单"模型。
  */
 const config = require('./config')
+const mockRunner = require('./mockRunner')
 
 function call(action, data) {
   if (config.USE_MOCK) {
-    return Promise.reject(new Error('抢单大厅需要部署云函数（关闭 USE_MOCK）'))
+    return mockRunner.handle(action, data || {})
   }
 
   return wx.cloud

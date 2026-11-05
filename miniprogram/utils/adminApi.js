@@ -6,6 +6,7 @@
  *   adminApi  运营端，身份靠登录后拿到的 token，显式带上
  */
 const config = require('./config')
+const mockRunner = require('./mockRunner')
 
 const TOKEN_KEY = 'admin_token'
 const NAME_KEY = 'admin_name'
@@ -30,7 +31,7 @@ function clearSession() {
 
 function call(action, data) {
   if (config.USE_MOCK) {
-    return Promise.reject(new Error('运营后台需要关闭 USE_MOCK 并部署云函数'))
+    return mockRunner.handle(action, data || {})
   }
 
   return wx.cloud
