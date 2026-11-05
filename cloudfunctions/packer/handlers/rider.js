@@ -68,6 +68,9 @@ function shape(batch, withOrders) {
         delivered: !!o.delivered,
         room: o.room || '',
         floor: o.floor || 0,
+        // 每单自己的楼栋：跨楼批次靠它拆回各栋
+        buildingId: o.buildingId || o.buildingName || (batch.buildingIds && batch.buildingIds.length === 1 ? batch.buildingIds[0] : ''),
+        buildingName: o.buildingName || '',
         canteenName: o.canteenName || batch.canteenName || '',
         stallName: o.stallName || '',
         // 档口在食堂的哪一层：决定骑手在食堂里的动线

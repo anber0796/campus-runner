@@ -131,10 +131,16 @@ function mergeByCanteen(batches) {
 function mergeByBuilding(batches) {
   const orders = []
   ;(batches || []).forEach(function (b) {
-    const bt = (b.buildingIds || [b.buildingId]).join('+')
+    const fallback = (b.buildingIds && b.buildingIds.length === 1)
+      ? b.buildingIds[0]
+      : b.buildingId
     ;(b.orderList || []).forEach(function (o) {
       if (o.picked && !o.delivered) {
-        orders.push(Object.assign({}, o, { batchId: b.id, buildingText: bt }))
+        // 优先用订单自己的楼栋；跨楼批次靠这一条拆开
+        orders.push(Object.assign({}, o, {
+          batchId: b.id,
+          buildingText: o.buildingId || o.buildingName || fallback,
+        }))
       }
     })
   })

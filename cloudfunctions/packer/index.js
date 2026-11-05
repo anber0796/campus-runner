@@ -272,6 +272,10 @@ async function runGenerate() {
   const orders = raw.map(function (o) { return Object.assign({}, o, { id: o._id }) })
   const result = batcher.buildBatches(orders, { allowCrossBuilding: false })
 
+  // 每单的楼栋/楼层/商家要固化成快照——跨楼批次合并后，只有快照还能拆回各栋
+  const byId = {}
+  orders.forEach(function (o) { byId[o.id] = o })
+
   let created = 0
   for (const b of result.batches) {
     await db.collection('batches').add({
@@ -282,7 +286,23 @@ async function runGenerate() {
         buildingIds: b.buildingIds || [b.buildingId],
         waveId: b.waveId,
         floorBand: b.floorBand,
-        orders: b.orders,
+        orders: b.orders.map(function (id) {
+          const o = byId[id] || {}
+          return {
+            id: id,
+            tail: String(o.channelOrderNo || '').slice(-4),
+            buildingId: o.buildingId || b.buildingId,
+            buildingName: o.buildingName || '',
+            floor: o.floor || 1,
+            room: o.room || '',
+            stallId: o.stallId || '',
+            stallName: o.stallName || '',
+            stallFloor: o.stallFloor || 1,
+            dueAt: o.dueAt || (Date.now() + 40 * 60000),
+            picked: false,
+            delivered: false,
+          }
+        }),
         orderCount: b.orderCount,
         volume: b.volume,
         minFloor: b.minFloor,

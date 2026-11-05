@@ -130,6 +130,21 @@ const state = {
   invite: { registered: 7, firstOrdered: 4, amount: 0 },
 }
 
+// 跨楼批次（P2）里，订单要各自归属到具体楼栋，否则送达时拆不开
+state.batches.forEach(function (b) {
+  if (b.buildingIds && b.buildingIds.length > 1) {
+    b.orders.forEach(function (o, i) {
+      o.buildingId = b.buildingIds[i % b.buildingIds.length]
+      o.buildingName = o.buildingId
+    })
+  } else {
+    b.orders.forEach(function (o) {
+      o.buildingId = o.buildingId || b.buildingId
+      o.buildingName = o.buildingName || b.buildingId
+    })
+  }
+})
+
 // 已取餐的批次，订单要标成已取——否则「待送达」页里点不出送达按钮
 state.batches.forEach(function (b) {
   if (b.status === 'PICKED') {
@@ -183,6 +198,8 @@ function shapeBatch(b) {
         tail: o.tail,
         room: o.room,
         floor: o.floor,
+        buildingId: o.buildingId || b.buildingId,
+        buildingName: o.buildingName || '',
         canteenName: o.canteenName || '一食堂',
         stallName: o.stallName,
         stallFloor: o.stallFloor || 1,

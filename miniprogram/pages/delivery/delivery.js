@@ -76,12 +76,15 @@ Page({
 
         // 把每一批里"已取未送"的单抽出来，并记住它属于哪一批
         active.forEach(function (b) {
+          const fallback = (b.buildingIds && b.buildingIds.length === 1)
+            ? b.buildingIds[0]
+            : b.buildingId
           ;(b.orderList || []).forEach(function (o) {
             if (o.picked && !o.delivered) {
               all.push(Object.assign({}, o, {
                 batchId: b.id,
-                buildingText: (b.buildingIds || [b.buildingId]).join('+'),
-                buildingId: b.buildingId,
+                buildingText: o.buildingId || o.buildingName || fallback,
+                buildingId: o.buildingId || fallback,
               }))
             }
           })
