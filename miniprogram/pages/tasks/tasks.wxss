@@ -359,3 +359,18 @@
   margin-right: 0;
   margin-top: 8rpx;
 }
+
+.floor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 14rpx;
+}
+
+.floor-chip {
+  font-size: 23rpx;
+  color: #1f9d55;
+  background: #e8f7ee;
+  border-radius: 8rpx;
+  padding: 6rpx 14rpx;
+  margin: 0 12rpx 10rpx 0;
+}

@@ -124,6 +124,58 @@ function mergeByCanteen(batches) {
   return groups.sort(function (a, b) { return a.tightestMin - b.tightestMin })
 }
 
+/**
+ * 待送达按「楼栋 → 楼层」聚合。
+ * 骑手关心的是"去几栋、每栋爬几层"，不是"这是哪一批"。
+ */
+function mergeByBuilding(batches) {
+  const orders = []
+  ;(batches || []).forEach(function (b) {
+    const bt = (b.buildingIds || [b.buildingId]).join('+')
+    ;(b.orderList || []).forEach(function (o) {
+      if (o.picked && !o.delivered) {
+        orders.push(Object.assign({}, o, { batchId: b.id, buildingText: bt }))
+      }
+    })
+  })
+
+  const byBuilding = {}
+  orders.forEach(function (o) {
+    const k = o.buildingText || '未知楼栋'
+    if (!byBuilding[k]) byBuilding[k] = []
+    byBuilding[k].push(o)
+  })
+
+  return Object.keys(byBuilding).sort().map(function (k) {
+    const list = byBuilding[k]
+    const byFloor = {}
+    list.forEach(function (o) {
+      const f = o.floor || 0
+      if (!byFloor[f]) byFloor[f] = []
+      byFloor[f].push(o)
+    })
+
+    const floors = Object.keys(byFloor)
+      .map(Number)
+      .sort(function (a, b) { return b - a })
+      .map(function (f) {
+        return { floor: f, label: f + 'F', count: byFloor[f].length }
+      })
+
+    const t = fmt.tightest(list)
+
+    return {
+      buildingText: k,
+      count: list.length,
+      orderText: list.length + ' 单',
+      floors: floors,
+      floorText: floors.map(function (f) { return f.label + ' ' + f.count + '单' }).join(' · '),
+      remainText: t ? t.text : '',
+      remainLevel: t ? t.level : '',
+    }
+  })
+}
+
 Page({
   data: {
     loading: true,
@@ -132,6 +184,7 @@ Page({
     pool: [],
     pick: [],
     deliver: [],
+    deliverGroups: [],
     done: [],
     student: null,
     canClaim: null,
@@ -199,6 +252,7 @@ Page({
             return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
           })),
           deliver: active.filter(function (b) { return b.status === 'PICKED' }).map(decorateBatch),
+          deliverGroups: mergeByBuilding(active.filter(function (b) { return b.status === 'PICKED' })),
           done: (mine.finished || []).map(decorateBatch),
         })
       })
@@ -224,7 +278,12 @@ Page({
         })
       })
     }
-    this.setData({ deliver: remap(this.data.deliver) })
+    this.setData({
+      deliver: remap(this.data.deliver),
+      deliverGroups: mergeByBuilding(this.data.deliver.filter(function (b) {
+        return b.status === 'PICKED'
+      })),
+    })
 
     if (!this.data.pool.length) return
     let expired = false

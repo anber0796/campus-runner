@@ -28,7 +28,7 @@
       待取餐<text class="num" wx:if="{{pick.length}}">{{pick.length}}</text>
     </view>
     <view class="tab3 {{tab === 'deliver' ? 'active' : ''}}" bindtap="switchTab" data-tab="deliver">
-      待送达<text class="num" wx:if="{{deliver.length}}">{{deliver.length}}</text>
+      待送达<text class="num" wx:if="{{deliverGroups.length}}">{{deliverGroups.length}}</text>
     </view>
     <view class="tab3 {{tab === 'done' ? 'active' : ''}}" bindtap="switchTab" data-tab="done">
       已完成<text class="num" wx:if="{{done.length}}">{{done.length}}</text>
@@ -112,25 +112,31 @@
 
   <!-- ============ 待送达：只显示送到哪栋哪层 ============ -->
   <block wx:elif="{{tab === 'deliver'}}">
-    <view class="task" wx:for="{{deliver}}" wx:key="id">
+    <view class="task" wx:for="{{deliverGroups}}" wx:key="buildingText">
       <view class="task-head">
         <view>
-          <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+          <view class="task-title">{{item.buildingText}}</view>
           <view class="task-sub">按楼层从上到下送</view>
         </view>
         <view class="head-right">
-          <view class="{{item.statusClass}}">{{item.statusText}}</view>
+          <view class="tag">待送达</view>
           <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
         </view>
       </view>
 
+      <view class="floor-chips">
+        <text class="floor-chip" wx:for="{{item.floors}}" wx:for-item="f" wx:key="floor">
+          {{f.label}} {{f.count}}单
+        </text>
+      </view>
+
       <view class="task-foot">
-        <view class="muted">{{item.orderText}} · 到手 {{item.earnText}}</view>
-        <view class="go-btn" bindtap="goDeliver" data-id="{{item.id}}">去送达</view>
+        <view class="muted">共 {{item.count}} 单</view>
+        <view class="go-btn" bindtap="goDeliver">去送达</view>
       </view>
     </view>
 
-    <view class="empty" wx:if="{{!deliver.length && !loading}}">没有待送达的批次</view>
+    <view class="empty" wx:if="{{!deliverGroups.length && !loading}}">没有待送达的单</view>
   </block>
 
   <!-- ============ 已完成：楼栋 + 单量 + 金额 ============ -->
