@@ -50,7 +50,7 @@
 
         <view wx:if="{{item.delivered}}" class="state done">已送达</view>
         <view wx:elif="{{item.picked}}" class="state picked">已取</view>
-        <view wx:else class="state wait">待取</view>
+        <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder" data-id="{{item.id}}">取餐</view>
       </view>
     </view>
 

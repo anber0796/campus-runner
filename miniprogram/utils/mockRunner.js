@@ -212,13 +212,13 @@ const handlers = {
     if (!b) return fail('批次不存在', 404)
     const no = String(p.orderNo || '').trim()
     const hit = b.orders.filter(function (o) {
+      if (p.orderId) return o.id === p.orderId
       return o.tail === no || o.id === no
     })[0]
-    if (!hit) return fail('这批里没有这个运单号', 404)
+    if (!hit) return fail(p.orderId ? '这一单不在批次里' : '这批里没有这个运单号', 404)
 
     hit.picked = true
     if (b.orders.every(function (o) { return o.picked })) b.status = 'PICKED'
-    if (b.status === 'ASSIGNED') b.status = 'PICKED'
     return delay({ ok: true, allPicked: b.status === 'PICKED' })
   },
 

@@ -193,7 +193,9 @@ module.exports = {
     const openid = args.ctx.OPENID
     const batchId = args.event.batchId
     const orderNo = String(args.event.orderNo || '').trim()
-    if (!orderNo) throw AppError(400, '请输入或扫描运单号')
+    const orderId = args.event.orderId
+    // 三种入口：扫码、手输运单号、直接点「取餐」
+    if (!orderNo && !orderId) throw AppError(400, '请输入运单号或直接点取餐')
 
     const res = await db.collection(BATCH).doc(batchId).get()
     const batch = res.data
@@ -204,10 +206,13 @@ module.exports = {
     let hit = -1
     for (let i = 0; i < orders.length; i++) {
       const o = orders[i]
-      const no = typeof o === 'string' ? o : (o.channelOrderNo || o.id || '')
-      if (no === orderNo || (no && no.slice(-4) === orderNo)) { hit = i; break }
+      if (orderId && (o.id === orderId || o === orderId)) { hit = i; break }
+      if (!orderId && orderNo) {
+        const no = typeof o === 'string' ? o : (o.channelOrderNo || o.id || '')
+        if (no === orderNo || (no && no.slice(-4) === orderNo)) { hit = i; break }
+      }
     }
-    if (hit < 0) throw AppError(404, '这批里没有这个运单号')
+    if (hit < 0) throw AppError(404, orderId ? '这一单不在批次里' : '这批里没有这个运单号')
 
     const data = {}
     data['orders.' + hit + '.picked'] = true

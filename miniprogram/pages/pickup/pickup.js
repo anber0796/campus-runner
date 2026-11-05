@@ -74,6 +74,28 @@ Page({
     this.doPickup(this.data.inputNo)
   },
 
+  // 直接点「取餐」，不用扫码也不用输单号
+  pickOrder(e) {
+    if (this.data.busy) return
+    const orderId = e.currentTarget.dataset.id
+    if (!this.data.current) return wx.showToast({ title: '先选一批', icon: 'none' })
+
+    const that = this
+    this.setData({ busy: true })
+    riderApi
+      .pickup(this.data.current.id, '', orderId)
+      .then(function () {
+        that.setData({ busy: false })
+        wx.showToast({ title: '已取餐', icon: 'success' })
+        that.load()
+        that.select(that.data.current.id)
+      })
+      .catch(function (err) {
+        that.setData({ busy: false })
+        wx.showToast({ title: err.message || '取餐失败', icon: 'none' })
+      })
+  },
+
   doPickup(orderNo) {
     if (this.data.busy) return
     const no = String(orderNo || '').trim()

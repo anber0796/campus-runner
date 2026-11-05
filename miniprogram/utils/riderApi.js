@@ -30,7 +30,9 @@ module.exports = {
   home: function () { return call('rider.home') },
   grab: function (batchId) { return call('rider.grab', { batchId: batchId }) },
   myBatches: function () { return call('rider.myBatches') },
-  pickup: function (batchId, orderNo) { return call('rider.pickup', { batchId: batchId, orderNo: orderNo }) },
+  pickup: function (batchId, orderNo, orderId) {
+    return call('rider.pickup', { batchId: batchId, orderNo: orderNo, orderId: orderId })
+  },
   deliver: function (batchId, orderId, photo) {
     return call('rider.deliver', { batchId: batchId, orderId: orderId, photo: photo })
   },

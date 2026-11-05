@@ -123,3 +123,15 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+.pick-order-btn {
+  background: #1f9d55;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 600;
+  padding: 0 32rpx;
+  line-height: 62rpx;
+  border-radius: 31rpx;
+}
+
+.pick-order-btn.disabled { background: #c9cdd4; }
