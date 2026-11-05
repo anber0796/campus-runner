@@ -355,3 +355,51 @@
 .o-remain.warn { background: #fff4e5; color: #c26a00; }
 .o-remain.urgent { background: #fdecec; color: #d93b3b; font-weight: 600; }
 .o-remain.over { background: #d93b3b; color: #fff; font-weight: 600; }
+
+/* 楼层内的商家块 */
+.stall-block {
+  margin-top: 18rpx;
+  padding: 14rpx 18rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
+}
+
+.stall-block.done {
+  background: #f5f6f8;
+}
+
+.stall-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8rpx;
+}
+
+.stall-title {
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1c1f26;
+}
+
+.stall-block.done .stall-title {
+  color: #6b7280;
+}
+
+.stall-count {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.row-gap {
+  flex: 1;
+}
+
+/* 商家块内的运单行不再重复商家名 */
+.stall-block .order-row {
+  padding-left: 0;
+  border-bottom: 1rpx solid #eceef1;
+}
+
+.stall-block .order-row:last-child {
+  border-bottom: none;
+}

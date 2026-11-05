@@ -6,34 +6,47 @@ const fmt = require('../../utils/format')
  * 同一食堂的多批会先合并再分组，所以动线是整栋食堂一起走的。
  */
 function groupByStallFloor(orders) {
-  const map = {}
+  // 楼 → 商家 → 运单。同一个商家只出现一次，运单挂在它下面
+  const byFloor = {}
   ;(orders || []).forEach(function (o) {
     const f = o.stallFloor || 1
-    if (!map[f]) map[f] = []
-    map[f].push(o)
+    if (!byFloor[f]) byFloor[f] = {}
+    const name = o.stallName || '未命名档口'
+    if (!byFloor[f][name]) byFloor[f][name] = []
+    byFloor[f][name].push(o)
   })
 
-  return Object.keys(map)
+  return Object.keys(byFloor)
     .map(Number)
     .sort(function (a, b) { return a - b })
     .map(function (f) {
-      const list = map[f].slice().sort(function (a, b) {
-        const sa = String(a.stallName || '')
-        const sb = String(b.stallName || '')
-        if (sa !== sb) return sa.localeCompare(sb)
-        return String(a.tail).localeCompare(String(b.tail))
+      const stallMap = byFloor[f]
+      const stallNames = Object.keys(stallMap).sort()
+
+      let count = 0
+      let pickedCount = 0
+
+      const stalls = stallNames.map(function (name) {
+        const list = stallMap[name].slice().sort(function (a, b) {
+          return String(a.tail).localeCompare(String(b.tail))
+        })
+        count += list.length
+        pickedCount += list.filter(function (o) { return o.picked }).length
+        return {
+          name: name,
+          count: list.length,
+          allDone: list.every(function (o) { return o.picked }),
+          orders: list,
+        }
       })
-      const stalls = []
-      list.forEach(function (o) {
-        if (o.stallName && stalls.indexOf(o.stallName) < 0) stalls.push(o.stallName)
-      })
+
       return {
         floor: f,
-        count: list.length,
-        stallCount: stalls.length,
-        pickedCount: list.filter(function (o) { return o.picked }).length,
-        allDone: list.every(function (o) { return o.picked }),
-        orders: list,
+        count: count,
+        pickedCount: pickedCount,
+        stallCount: stallNames.length,
+        allDone: pickedCount === count,
+        stalls: stalls,
       }
     })
 }
@@ -133,15 +146,18 @@ Page({
     let nextStop = null
     for (let i = 0; i < groups.length && !nextStop; i++) {
       const g = groups[i]
-      for (let j = 0; j < g.orders.length; j++) {
-        if (!g.orders[j].picked) {
-          nextStop = {
-            floorLabel: g.floor + 'F',
-            stallName: g.orders[j].stallName || '档口',
-            tail: g.orders[j].tail,
-            remain: orders.filter(function (o) { return !o.picked }).length,
+      for (let k = 0; k < g.stalls.length && !nextStop; k++) {
+        const st = g.stalls[k]
+        for (let j = 0; j < st.orders.length; j++) {
+          if (!st.orders[j].picked) {
+            nextStop = {
+              floorLabel: g.floor + 'F',
+              stallName: st.name,
+              tail: st.orders[j].tail,
+              remain: orders.filter(function (o) { return !o.picked }).length,
+            }
+            break
           }
-          break
         }
       }
     }
@@ -187,8 +203,10 @@ Page({
 
     let hit = null
     this.data.groups.forEach(function (g) {
-      g.orders.forEach(function (o) {
-        if (!o.picked && (o.tail === no || String(o.id) === no)) hit = o
+      g.stalls.forEach(function (st) {
+        st.orders.forEach(function (o) {
+          if (!o.picked && (o.tail === no || String(o.id) === no)) hit = o
+        })
       })
     })
     if (!hit) return wx.showToast({ title: '这批里没有这个运单号', icon: 'none' })
@@ -203,8 +221,10 @@ Page({
 
     let hit = null
     this.data.groups.forEach(function (g) {
-      g.orders.forEach(function (o) {
-        if (o.id === orderId && o.batchId === batchId) hit = o
+      g.stalls.forEach(function (st) {
+        st.orders.forEach(function (o) {
+          if (o.id === orderId && o.batchId === batchId) hit = o
+        })
       })
     })
     if (!hit) return

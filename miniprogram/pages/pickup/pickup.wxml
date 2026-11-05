@@ -44,15 +44,23 @@
           <text class="muted">{{g.pickedCount}}/{{g.count}}</text>
         </view>
 
-        <view class="order-row {{o.picked ? 'row-done' : ''}}" wx:for="{{g.orders}}" wx:key="id" wx:for-item="o">
-          <view class="stall-name">{{o.stallName || '—'}}</view>
-          <text class="o-remain {{o.remainLevel}}" wx:if="{{o.remainText}}">{{o.remainText}}</text>
-          <view class="tail-box">{{o.tail}}</view>
+        <!-- 商家只出现一次，运单挂在他下面 -->
+        <view class="stall-block {{st.allDone ? 'done' : ''}}" wx:for="{{g.stalls}}" wx:key="name" wx:for-item="st">
+          <view class="stall-head">
+            <text class="stall-title">{{st.name}}</text>
+            <text class="stall-count">{{st.count}} 单</text>
+          </view>
 
-          <view wx:if="{{undoId === o.undoKey}}" class="undo-btn" bindtap="undoPick" data-key="{{o.undoKey}}">撤销</view>
-          <view wx:elif="{{o.picked}}" class="state picked">已取</view>
-          <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder"
-                data-id="{{o.id}}" data-batch="{{o.batchId}}">取餐</view>
+          <view class="order-row {{o.picked ? 'row-done' : ''}}" wx:for="{{st.orders}}" wx:key="id" wx:for-item="o">
+            <view class="tail-box">{{o.tail}}</view>
+            <text class="o-remain {{o.remainLevel}}" wx:if="{{o.remainText}}">{{o.remainText}}</text>
+            <view class="row-gap"></view>
+
+            <view wx:if="{{undoId === o.undoKey}}" class="undo-btn" bindtap="undoPick" data-key="{{o.undoKey}}">撤销</view>
+            <view wx:elif="{{o.picked}}" class="state picked">已取</view>
+            <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder"
+                  data-id="{{o.id}}" data-batch="{{o.batchId}}">取餐</view>
+          </view>
         </view>
       </view>
 
