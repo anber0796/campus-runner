@@ -324,3 +324,21 @@
 }
 
 .bottom-btn.disabled { background: #c9cdd4; color: #fff; }
+
+/* 取齐后的提示（正常会直接跳送达页，这里只是兜底） */
+.done-card {
+  text-align: center;
+  padding: 48rpx 32rpx;
+}
+
+.done-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f9d55;
+}
+
+.done-tip {
+  font-size: 23rpx;
+  color: #6b7280;
+  margin-top: 18rpx;
+}

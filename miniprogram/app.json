@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/tasks/tasks",
+    "pages/delivery/delivery",
     "pages/index/index",
     "pages/pack/pack",
     "pages/deliver/deliver",

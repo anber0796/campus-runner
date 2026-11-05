@@ -116,7 +116,7 @@
 
       <view class="task-foot">
         <view class="muted">{{item.orderText}} · 到手 {{item.earnText}}</view>
-        <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去送达</view>
+        <view class="go-btn" bindtap="goDeliver" data-id="{{item.id}}">去送达</view>
       </view>
     </view>
 

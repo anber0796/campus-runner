@@ -216,4 +216,9 @@ Page({
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/pages/pickup/pickup?id=' + id })
   },
+
+  goDeliver(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: '/pages/delivery/delivery?id=' + id })
+  },
 })

@@ -17,7 +17,6 @@ function groupByStallFloor(orders) {
     .map(Number)
     .sort(function (a, b) { return a - b })
     .map(function (f) {
-      // 同一层内按商家名排序：同一家的单挨在一起，到了店门口一次取完
       const list = map[f].slice().sort(function (a, b) {
         const sa = String(a.stallName || '')
         const sb = String(b.stallName || '')
@@ -48,23 +47,26 @@ Page({
     batches: [],
     current: null,
     orders: [],
-    inputNo: '',
-    busy: false,
-    allPicked: false,
     groups: [],
     nextStop: null,
+    allPicked: false,
     undoId: '',
-    deliverList: [],
+    inputNo: '',
+    busy: false,
     primary: null,
   },
 
   onLoad(query) {
-    // 从「我的任务」点进来时带 id，直接定位到那一批
     this.wantId = (query && query.id) || ''
   },
 
   onShow() {
     this.load()
+  },
+
+  onPullDownRefresh() {
+    this.load()
+    wx.stopPullDownRefresh()
   },
 
   load() {
@@ -73,15 +75,25 @@ Page({
     riderApi
       .myBatches()
       .then(function (d) {
-        const active = d.active || []
+        // 取餐页只处理"还没取齐"的批次；取齐的直接去送达页
+        const active = (d.active || []).filter(function (b) {
+          return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
+        })
         that.setData({ loading: false, batches: active })
-        // 带了 id 就定位；只有一批也直接进去，省一次点击
-        if (that.wantId && !that.data.current) {
-          const hit = active.filter(function (b) { return b.id === that.wantId })[0]
-          if (hit) that.select(hit.id)
+        if (!active.length) {
+          that.setData({ current: null, groups: [], nextStop: null, primary: null, allPicked: false })
           return
         }
-        if (active.length === 1 && !that.data.current) that.select(active[0].id)
+        const want = that.wantId && active.filter(function (b) { return b.id === that.wantId })[0]
+        const target = want || that.data.current || active[0]
+        that.select(target.id)
+      })
+      .then(function () {
+        // 刚取完最后一件：这一批已经从"待取餐"消失，直接送他去送达页
+        if (that._jumpAfterPick) {
+          that._jumpAfterPick = false
+          wx.redirectTo({ url: '/pages/delivery/delivery?id=' + that._deliverId })
+        }
       })
       .catch(function (e) {
         that.setData({ loading: false, error: e.message || '加载失败' })
@@ -95,10 +107,11 @@ Page({
   select(id) {
     const batch = this.data.batches.filter(function (b) { return b.id === id })[0]
     if (!batch) return
+
     const orders = batch.orderList || []
-    // 全部取齐后，取餐板块整块隐藏，页面只剩「送达」
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
     const groups = groupByStallFloor(orders)
+
     // 下一站：按楼层从低到高，第一个还没取的商家
     let nextStop = null
     for (let i = 0; i < groups.length && !nextStop; i++) {
@@ -116,21 +129,10 @@ Page({
       }
     }
 
-    // 送达按寝室楼层从高到低：先把高层送完，一路往下走，不用来回爬
-    const deliverList = orders
-      .filter(function (o) { return o.picked && !o.delivered })
-      .slice()
-      .sort(function (a, b) { return (b.floor || 0) - (a.floor || 0) })
-
-    // 底部主按钮：永远只给「现在该做的那一件事」
-    let primary = null
-    if (!allPicked) {
-      primary = { kind: 'pick', label: '扫码取餐', sub: '还剩 ' + (orders.length - orders.filter(function (o) { return o.picked }).length) + ' 单' }
-    } else if (deliverList.length) {
-      primary = { kind: 'deliver', targetId: deliverList[0].id, label: '送达 ' + deliverList[0].tail, sub: '还剩 ' + deliverList.length + ' 单' }
-    } else {
-      primary = { kind: 'done', label: '这一批已完成', sub: '' }
-    }
+    const remain = orders.length - orders.filter(function (o) { return o.picked }).length
+    const primary = allPicked
+      ? { kind: 'go-deliver', label: '已取齐 ' + orders.length + ' 单', sub: '去送达' }
+      : { kind: 'pick', label: '扫码取餐', sub: '还剩 ' + remain + ' 单' }
 
     this.setData({
       current: batch,
@@ -138,7 +140,6 @@ Page({
       allPicked: allPicked,
       groups: groups,
       nextStop: nextStop,
-      deliverList: deliverList,
       primary: primary,
     })
   },
@@ -147,23 +148,39 @@ Page({
     this.setData({ inputNo: e.detail.value })
   },
 
-  // 扫码取餐：扫小票条码/运单码，比手输快得多
   scan() {
     const that = this
     wx.scanCode({
       onlyFromCamera: false,
       scanType: ['barCode', 'qrCode'],
-      success: function (res) {
-        that.doPickup(res.result)
-      },
-      fail: function () {
-        wx.showToast({ title: '没扫到，可以手输运单号', icon: 'none' })
-      },
+      success: function (res) { that.doPickup(res.result) },
+      fail: function () { wx.showToast({ title: '没扫到，可以手输运单号', icon: 'none' }) },
     })
   },
 
   manualPickup() {
     this.doPickup(this.data.inputNo)
+  },
+
+  doPickup(orderNo) {
+    if (this.data.busy) return
+    const no = String(orderNo || '').trim()
+    if (!no) return wx.showToast({ title: '请输入运单号', icon: 'none' })
+    if (!this.data.current) return wx.showToast({ title: '先选一批', icon: 'none' })
+
+    const that = this
+    this.setData({ busy: true })
+    riderApi
+      .pickup(this.data.current.id, no)
+      .then(function () {
+        that.setData({ busy: false, inputNo: '' })
+        wx.showToast({ title: '已取餐', icon: 'success' })
+        that.load()
+      })
+      .catch(function (e) {
+        that.setData({ busy: false })
+        wx.showToast({ title: e.message || '取餐失败', icon: 'none' })
+      })
   },
 
   // 直接点「取餐」，不用扫码也不用输单号
@@ -176,16 +193,16 @@ Page({
     this.setData({ busy: true })
     riderApi
       .pickup(this.data.current.id, '', orderId)
-      .then(function () {
+      .then(function (r) {
         that.setData({ busy: false, undoId: orderId })
         wx.showToast({ title: '已取餐', icon: 'success' })
+        if (r && r.allPicked) {
+          that._jumpAfterPick = true
+          that._deliverId = that.data.current.id
+        }
         that.load()
-        that.select(that.data.current.id)
-        // 3 秒内可以撤销，过期自动收起
         clearTimeout(that._undoTimer)
-        that._undoTimer = setTimeout(function () {
-          that.setData({ undoId: '' })
-        }, 3000)
+        that._undoTimer = setTimeout(function () { that.setData({ undoId: '' }) }, 3000)
       })
       .catch(function (err) {
         that.setData({ busy: false })
@@ -203,64 +220,18 @@ Page({
         that.setData({ undoId: '' })
         wx.showToast({ title: '已撤销', icon: 'none' })
         that.load()
-        that.select(that.data.current.id)
       })
       .catch(function (err) {
         wx.showToast({ title: err.message || '撤销失败', icon: 'none' })
       })
   },
 
-  doPickup(orderNo) {
-    if (this.data.busy) return
-    const no = String(orderNo || '').trim()
-    if (!no) return wx.showToast({ title: '请输入运单号', icon: 'none' })
-    if (!this.data.current) return wx.showToast({ title: '先选一批', icon: 'none' })
-
-    const that = this
-    this.setData({ busy: true })
-    riderApi
-      .pickup(this.data.current.id, no)
-      .then(function (r) {
-        that.setData({ busy: false, inputNo: '' })
-        wx.showToast({ title: '已取餐', icon: 'success' })
-        that.load()
-        that.select(that.data.current.id)
-      })
-      .catch(function (e) {
-        that.setData({ busy: false })
-        wx.showToast({ title: e.message || '取餐失败', icon: 'none' })
-      })
+  primaryTap() {
+    const p = this.data.primary
+    if (!p || this.data.busy) return
+    if (p.kind === 'pick') return this.scan()
+    if (p.kind === 'go-deliver') {
+      wx.navigateTo({ url: '/pages/delivery/delivery?id=' + this.data.current.id })
+    }
   },
-
-  // 送达：拍照留证
-  deliver(e) {
-    const that = this
-    const orderId = e.currentTarget.dataset.id
-
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      // 直接进相机，省一次选择
-      sourceType: ['camera'],
-      camera: 'back',
-      success: function (res) {
-        const photo = res.tempFiles[0].tempFilePath
-        that.setData({ busy: true })
-        riderApi
-          .deliver(that.data.current.id, orderId, photo)
-          .then(function () {
-            that.setData({ busy: false })
-            wx.showToast({ title: '已送达', icon: 'success' })
-            that.load()
-            that.select(that.data.current.id)
-          })
-          .catch(function (err) {
-            that.setData({ busy: false })
-            wx.showToast({ title: err.message || '提交失败', icon: 'none' })
-          })
-      },
-    })
-  },
-
-
 })
