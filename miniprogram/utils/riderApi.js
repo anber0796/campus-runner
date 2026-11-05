@@ -33,6 +33,9 @@ module.exports = {
   pickup: function (batchId, orderNo, orderId) {
     return call('rider.pickup', { batchId: batchId, orderNo: orderNo, orderId: orderId })
   },
+  unpick: function (batchId, orderId) {
+    return call('rider.unpick', { batchId: batchId, orderId: orderId })
+  },
   deliver: function (batchId, orderId, photo) {
     return call('rider.deliver', { batchId: batchId, orderId: orderId, photo: photo })
   },

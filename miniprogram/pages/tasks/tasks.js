@@ -1,5 +1,13 @@
 const riderApi = require('../../utils/riderApi')
 
+function leftText(deadline) {
+  if (!deadline) return ''
+  const ms = deadline - Date.now()
+  if (ms <= 0) return '已截止'
+  const min = Math.floor(ms / 60000)
+  return min < 1 ? '即将截止' : '剩 ' + min + ' 分'
+}
+
 function fmtTime(ts) {
   const d = new Date(ts)
   return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
@@ -29,6 +37,30 @@ Page({
 
   onShow() {
     this.load()
+    const that = this
+    clearInterval(this._timer)
+    // 每 20 秒刷新一次倒计时；到点的重新拉一遍数据
+    this._timer = setInterval(function () { that.tick() }, 20000)
+  },
+
+  onHide() {
+    clearInterval(this._timer)
+  },
+
+  onUnload() {
+    clearInterval(this._timer)
+  },
+
+  tick() {
+    if (!this.data.pool.length) return
+    let expired = false
+    const pool = this.data.pool.map(function (b) {
+      const t = leftText(b.claimDeadline)
+      if (t === '已截止') expired = true
+      return Object.assign({}, b, { leftText: t, urgent: t === '即将截止' || t === '已截止' })
+    })
+    this.setData({ pool: pool })
+    if (expired) this.load()
   },
 
   onPullDownRefresh() {
@@ -56,6 +88,9 @@ Page({
             buildingText: (b.buildingIds || [b.buildingId]).join(' + '),
             tailText: (b.tails || []).join(' / '),
             orderText: b.orderCount + ' 单',
+            leftText: leftText(b.claimDeadline),
+            urgent: leftText(b.claimDeadline) === '即将截止',
+            walkText: b.walkMinutes ? '步行 ' + b.walkMinutes + ' 分钟' : '',
             timeText: b.deliveredAt ? fmtTime(b.deliveredAt) : '',
           })
         }

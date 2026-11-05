@@ -236,6 +236,40 @@ module.exports = {
     return { ok: true, allPicked: allPicked }
   },
 
+  /**
+   * 撤销取餐。点错行了可以撤销，不用去求档口。
+   */
+  'rider.unpick': async function (args) {
+    const db = args.db
+    const openid = args.ctx.OPENID
+    const batchId = args.event.batchId
+    const orderId = args.event.orderId
+
+    const res = await db.collection(BATCH).doc(batchId).get()
+    const batch = res.data
+    if (!batch) throw AppError(404, '批次不存在')
+    if (batch.claimedBy !== openid && batch.assignedOpenid !== openid) {
+      throw AppError(403, '这不是你的批次')
+    }
+
+    const orders = batch.orders || []
+    const idx = orders.findIndex(function (o) { return (o.id || o) === orderId })
+    if (idx < 0) throw AppError(404, '这一单不在批次里')
+    if (orders[idx].delivered) throw AppError(409, '已送达的不能撤销')
+
+    const data = {}
+    data['orders.' + idx + '.picked'] = false
+    data['orders.' + idx + '.pickedAt'] = null
+    data.updatedAt = Date.now()
+    await db.collection(BATCH).doc(batchId).update({ data: data })
+
+    if (batch.status === 'PICKED') {
+      await db.collection(BATCH).where({ _id: batchId, status: 'PICKED' })
+        .update({ data: { status: 'CLAIMED' } })
+    }
+    return { ok: true }
+  },
+
   /** 单笔送达（拍照留证） */
   'rider.deliver': async function (args) {
     const db = args.db

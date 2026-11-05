@@ -33,11 +33,9 @@
       </view>
 
       <view class="task-meta">
-        {{item.orderText}}<text class="dot">·</text>{{item.priceText}}<text class="dot">·</text>{{item.waveId}}
-      </view>
-
-      <view class="tails">
-        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+        {{item.orderText}}<text class="dot">·</text>{{item.walkText}}
+        <text class="dot" wx:if="{{item.leftText}}">·</text>
+        <text class="{{item.urgent ? 'urgent' : ''}}">{{item.leftText}}</text>
       </view>
 
       <view class="task-foot">

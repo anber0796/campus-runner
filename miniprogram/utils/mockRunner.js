@@ -72,13 +72,13 @@ const state = {
     },
     // 已在池子里（学生可抢）
     {
-      id: 'P1', status: 'POOLED', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
+      id: 'P1', status: 'POOLED', canteenName: '一食堂', walkMinutes: 7, buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
       price: 1.2, orders: mkOrders(['2205', '6698', '9012'], 1), orderCount: 3,
       claimDeadline: now + 12 * MINUTE,
     },
     {
-      id: 'P3', status: 'POOLED', canteenName: '二食堂', buildingId: '5栋', buildingIds: ['5栋'],
+      id: 'P3', status: 'POOLED', canteenName: '二食堂', walkMinutes: 9, buildingId: '5栋', buildingIds: ['5栋'],
       floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
       price: 1.1, orders: mkOrders(['5521', '8834', '1177'], 1, '二食堂'), orderCount: 3,
       claimDeadline: now + 14 * MINUTE,
@@ -142,6 +142,7 @@ function shapeBatch(b) {
     id: b.id,
     canteenId: b.canteenId,
     canteenName: b.canteenName || '食堂',
+    walkMinutes: b.walkMinutes || 0,
     buildingId: b.buildingId,
     buildingIds: b.buildingIds,
     floorBand: b.floorBand,
@@ -243,6 +244,17 @@ const handlers = {
     hit.picked = true
     if (b.orders.every(function (o) { return o.picked })) b.status = 'PICKED'
     return delay({ ok: true, allPicked: b.status === 'PICKED' })
+  },
+
+  'rider.unpick': function (p) {
+    const b = state.batches.filter(function (x) { return x.id === p.batchId })[0]
+    if (!b) return fail('批次不存在', 404)
+    const o = b.orders.filter(function (x) { return x.id === p.orderId })[0]
+    if (!o) return fail('这一单不在批次里', 404)
+    if (o.delivered) return fail('已送达的不能撤销', 409)
+    o.picked = false
+    if (b.status === 'PICKED') b.status = 'CLAIMED'
+    return delay({ ok: true })
   },
 
   'rider.deliver': function (p) {

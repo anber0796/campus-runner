@@ -32,6 +32,18 @@
         <view class="scan-btn" bindtap="scan">扫码</view>
       </view>
 
+      <!-- 下一站：把"我现在该去哪"直接写在屏幕上 -->
+      <view class="next-stop" wx:if="{{nextStop}}">
+        <view class="next-left">
+          <view class="next-label">下一站</view>
+          <view class="next-main">{{nextStop.floorLabel}} · {{nextStop.stallName}}</view>
+        </view>
+        <view class="next-right">
+          <view class="next-tail">{{nextStop.tail}}</view>
+          <view class="next-remain">还剩 {{nextStop.remain}} 单</view>
+        </view>
+      </view>
+
       <!-- 楼层路线 -->
       <view class="route" wx:if="{{groups.length > 1}}">
         <block wx:for="{{groups}}" wx:key="floor">
@@ -56,6 +68,7 @@
           <view class="tail-box">{{o.tail}}</view>
 
           <view wx:if="{{o.delivered}}" class="state done">已送达</view>
+          <view wx:elif="{{undoId === o.id}}" class="undo-btn" bindtap="undoPick" data-id="{{o.id}}">撤销</view>
           <view wx:elif="{{o.picked}}" class="state picked">已取</view>
           <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder" data-id="{{o.id}}">取餐</view>
         </view>

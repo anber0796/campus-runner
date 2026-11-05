@@ -52,6 +52,8 @@ Page({
     busy: false,
     allPicked: false,
     groups: [],
+    nextStop: null,
+    undoId: '',
   },
 
   onLoad(query) {
@@ -94,11 +96,30 @@ Page({
     const orders = batch.orderList || []
     // 全部取齐后，取餐板块整块隐藏，页面只剩「送达」
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
+    const groups = groupByStallFloor(orders)
+    // 下一站：按楼层从低到高，第一个还没取的商家
+    let nextStop = null
+    for (let i = 0; i < groups.length && !nextStop; i++) {
+      const g = groups[i]
+      for (let j = 0; j < g.orders.length; j++) {
+        if (!g.orders[j].picked) {
+          nextStop = {
+            floorLabel: g.floor + 'F',
+            stallName: g.orders[j].stallName || '档口',
+            tail: g.orders[j].tail,
+            remain: orders.filter(function (o) { return !o.picked }).length,
+          }
+          break
+        }
+      }
+    }
+
     this.setData({
       current: batch,
       orders: orders,
       allPicked: allPicked,
-      groups: groupByStallFloor(orders),
+      groups: groups,
+      nextStop: nextStop,
     })
   },
 
@@ -136,14 +157,36 @@ Page({
     riderApi
       .pickup(this.data.current.id, '', orderId)
       .then(function () {
-        that.setData({ busy: false })
+        that.setData({ busy: false, undoId: orderId })
         wx.showToast({ title: '已取餐', icon: 'success' })
         that.load()
         that.select(that.data.current.id)
+        // 3 秒内可以撤销，过期自动收起
+        clearTimeout(that._undoTimer)
+        that._undoTimer = setTimeout(function () {
+          that.setData({ undoId: '' })
+        }, 3000)
       })
       .catch(function (err) {
         that.setData({ busy: false })
         wx.showToast({ title: err.message || '取餐失败', icon: 'none' })
+      })
+  },
+
+  undoPick(e) {
+    const that = this
+    const orderId = e.currentTarget.dataset.id
+    clearTimeout(this._undoTimer)
+    riderApi
+      .unpick(this.data.current.id, orderId)
+      .then(function () {
+        that.setData({ undoId: '' })
+        wx.showToast({ title: '已撤销', icon: 'none' })
+        that.load()
+        that.select(that.data.current.id)
+      })
+      .catch(function (err) {
+        wx.showToast({ title: err.message || '撤销失败', icon: 'none' })
       })
   },
 

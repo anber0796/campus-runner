@@ -42,7 +42,7 @@ page {
 
 .muted {
   font-size: 24rpx;
-  color: #8a8f99;
+  color: #6b7280;
 }
 
 .money {
@@ -77,7 +77,7 @@ page {
 
 .tag-gray {
   background: #f2f3f5;
-  color: #8a8f99;
+  color: #6b7280;
 }
 
 .divider {
@@ -117,13 +117,13 @@ page {
 
 .btn-disabled {
   background: #e6e8eb !important;
-  color: #a9aeb5 !important;
+  color: #6b7280 !important;
 }
 
 .empty {
   padding: 120rpx 40rpx;
   text-align: center;
-  color: #a9aeb5;
+  color: #6b7280;
   font-size: 26rpx;
 }
 
@@ -150,7 +150,7 @@ page {
 
 .menu-value {
   font-size: 26rpx;
-  color: #8a8f99;
+  color: #6b7280;
 }
 
 .arrow {
@@ -177,7 +177,7 @@ page {
 
 .stat-label {
   font-size: 22rpx;
-  color: #8a8f99;
+  color: #6b7280;
   margin-top: 6rpx;
 }
 
@@ -235,7 +235,7 @@ page {
 
 .section-title {
   font-size: 26rpx;
-  color: #8a8f99;
+  color: #6b7280;
   margin: 32rpx 8rpx 12rpx;
 }
 

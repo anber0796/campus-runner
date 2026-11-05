@@ -22,7 +22,7 @@
 
 .stat-label {
   font-size: 22rpx;
-  color: #8a8f99;
+  color: #6b7280;
   margin-top: 6rpx;
 }
 
@@ -72,7 +72,7 @@
 
 .item-id {
   font-size: 26rpx;
-  color: #8a8f99;
+  color: #6b7280;
   font-family: Menlo, monospace;
 }
 
@@ -146,7 +146,7 @@
 
 .foot-tip {
   font-size: 22rpx;
-  color: #a9aeb5;
+  color: #6b7280;
   text-align: center;
   margin-top: 32rpx;
   line-height: 1.7;

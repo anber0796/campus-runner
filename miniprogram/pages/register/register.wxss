@@ -53,7 +53,7 @@
 .foot-note {
   text-align: center;
   font-size: 22rpx;
-  color: #a9aeb5;
+  color: #6b7280;
   margin-top: 28rpx;
 }
 
