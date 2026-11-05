@@ -324,6 +324,63 @@ const handlers = {
     return delay({ published: drafts.length, total: drafts.length })
   },
 
+  'admin.checklist': function () {
+    const pooled = state.batches.filter(function (b) { return b.status === 'POOLED' })
+    const items = pooled.map(function (b) {
+      return {
+        batchId: b.id,
+        buildingText: b.buildingIds.join('+'),
+        floorRange: b.minFloor + '-' + b.maxFloor + ' 层',
+        orderCount: b.orderCount,
+        price: b.price,
+        cost: round2(b.price * b.orderCount),
+        tails: b.orders.map(function (o) { return o.tail }),
+        assignee: '张同学',
+        phone: '138****0001',
+        studentId: 'S1',
+        missingCandidate: false,
+      }
+    })
+
+    const totalOrders = items.reduce(function (s, x) { return s + x.orderCount }, 0)
+    const totalCost = round2(items.reduce(function (s, x) { return s + x.cost }, 0))
+
+    const lines = ['【顺路 · 指派清单】演示', '共 ' + items.length + ' 包 / ' + totalOrders + ' 单 / 成本 ¥' + totalCost, '']
+    items.forEach(function (x, i) {
+      lines.push((i + 1) + '. ' + x.batchId + '  ' + x.buildingText + ' ' + x.floorRange)
+      lines.push('   骑手 ' + x.assignee + '  ' + x.phone)
+      lines.push('   尾号 ' + x.tails.join(' / '))
+      lines.push('   □ 已指派')
+      lines.push('')
+    })
+    lines.push('操作：平台后台 → 按尾号搜索 → 指派 → 打勾')
+
+    return delay({
+      items: items,
+      text: lines.join('\n'),
+      summary: { count: items.length, totalOrders: totalOrders, totalCost: totalCost, missing: 0 },
+    })
+  },
+
+  'admin.assignBatch': function (p) {
+    const b = state.batches.filter(function (x) { return x.id === p.batchId })[0]
+    if (!b) return fail('批次不存在', 404)
+    b.status = 'ASSIGNED'
+    b.assignedTo = p.studentId
+    b.assignedName = '张同学'
+    return delay({ ok: true })
+  },
+
+  'admin.assignAll': function () {
+    const pooled = state.batches.filter(function (b) { return b.status === 'POOLED' })
+    pooled.forEach(function (b) {
+      b.status = 'ASSIGNED'
+      b.assignedTo = 'S1'
+      b.assignedName = '张同学'
+    })
+    return delay({ assigned: pooled.length, skipped: 0, total: pooled.length })
+  },
+
   'admin.stats': function () {
     const pooled = state.batches.filter(function (b) { return b.status === 'POOLED' }).length
     return delay({

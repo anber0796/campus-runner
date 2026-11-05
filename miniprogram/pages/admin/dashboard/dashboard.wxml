@@ -7,6 +7,7 @@
     </view>
     <view class="head-actions">
       <view class="post-btn" bindtap="goPost">发单</view>
+      <view class="post-btn" bindtap="goChecklist">指派</view>
       <view class="logout" bindtap="logout">退出</view>
     </view>
   </view>

@@ -12,7 +12,8 @@
     "pages/grab/grab",
     "pages/invite/invite",
     "pages/pickup/pickup",
-    "pages/admin/post/post"
+    "pages/admin/post/post",
+    "pages/admin/checklist/checklist"
   ],
   "window": {
     "backgroundTextStyle": "dark",

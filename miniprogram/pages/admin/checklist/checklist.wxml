@@ -1,0 +1,68 @@
+<view class="container">
+
+  <view class="head">
+    <view>
+      <view class="head-title">指派清单</view>
+      <view class="muted">照着这张单，在平台后台一包包指派</view>
+    </view>
+  </view>
+
+  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+
+  <view class="card summary" wx:if="{{summary}}">
+    <view class="row-between">
+      <view class="stat">
+        <view class="stat-num">{{summary.count}}</view>
+        <view class="stat-label">待指派</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num">{{summary.totalOrders}}</view>
+        <view class="stat-label">订单数</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num money">¥{{summary.totalCost}}</view>
+        <view class="stat-label">成本</view>
+      </view>
+    </view>
+    <view class="muted mt8" wx:if="{{summary.missing}}">
+      有 {{summary.missing}} 个批次没有合适骑手，需要人工处理
+    </view>
+  </view>
+
+  <view class="btn-row" wx:if="{{items.length}}">
+    <view class="btn-ghost-line" bindtap="copyAll">复制清单</view>
+    <view class="btn-solid {{busy ? 'disabled' : ''}}" bindtap="assignAll">一键指派</view>
+  </view>
+
+  <view class="item" wx:for="{{items}}" wx:key="batchId">
+    <view class="item-head">
+      <view class="item-id">{{item.batchId}}</view>
+      <view class="item-earn">¥{{item.cost}}</view>
+    </view>
+
+    <view class="item-meta">
+      {{item.buildingText}} · {{item.floorRange}} · {{item.orderCount}} 单 · ¥{{item.price}}/单
+    </view>
+
+    <view class="rider-row" wx:if="{{item.assignee}}">
+      <view class="rider">
+        <text class="rider-name">{{item.assignee}}</text>
+        <text class="rider-phone" bindtap="copyPhone" data-phone="{{item.phone}}">{{item.phone}}</text>
+      </view>
+      <view class="mark-btn {{busy ? 'disabled' : ''}}" bindtap="markOne" data-index="{{index}}">已指派</view>
+    </view>
+    <view class="no-rider" wx:else>没有可用骑手（信用不足 / 超出上限 / 楼栋不覆盖）</view>
+
+    <view class="tails">
+      <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!items.length && !loading}}">
+    没有待指派的批次{{'\n'}}先在「发单」里定价发布
+  </view>
+  <view class="empty" wx:elif="{{loading}}">加载中…</view>
+
+  <view class="foot-tip">操作路径：平台后台 → 按尾号搜索 → 指派给该骑手 → 回来点「已指派」</view>
+
+</view>

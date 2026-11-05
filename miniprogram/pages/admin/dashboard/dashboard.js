@@ -103,6 +103,10 @@ Page({
     })
   },
 
+  goChecklist() {
+    wx.navigateTo({ url: '/pages/admin/checklist/checklist' })
+  },
+
   goPost() {
     wx.navigateTo({ url: '/pages/admin/post/post' })
   },

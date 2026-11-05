@@ -13,6 +13,7 @@ const config = require('../lib/config')
 const executor = require('../lib/executor')
 const pricing = require('../lib/pricing')
 const settlement = require('../lib/settlement')
+const assignEngine = require('../lib/assign')
 const { patrol } = require('../lib/patrol')
 
 const SESSION = 'admin_sessions'
@@ -418,6 +419,128 @@ async function settleWallets(args) {
   return { ok: true, scanned: pending.length, settled: updated, amount: result.settledAmount }
 }
 
+// ---------------------------------------------------------------- 指派（L2）
+
+function mmdd(ts) {
+  const d = new Date(ts || Date.now())
+  return (d.getMonth() + 1) + '-' + String(d.getDate()).padStart(2, '0')
+}
+
+/**
+ * 生成指派清单：哪一包、派给谁、尾号是什么、驻点照着在哪打勾。
+ * 这是 L2 形态的核心交付物——派单动作仍在平台后台，我们负责把人工操作压到最短。
+ */
+async function buildAssignList(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+  const now = Date.now()
+
+  const batches = await fetchAll(db.collection('batches').where({
+    tenantId: tenantId,
+    status: 'POOLED',
+  }))
+  const students = await fetchAll(db.collection('students').where({ status: 'active' }))
+
+  const items = batches.map(function (b) {
+    const pick = assignEngine.pickBest(students, b, now)
+    const s = pick.student
+    return {
+      batchId: b._id,
+      buildingText: (b.buildingIds || [b.buildingId]).join('+'),
+      floorRange: (b.minFloor || 1) + '-' + (b.maxFloor || 1) + ' 层',
+      orderCount: b.orderCount,
+      price: b.price,
+      cost: pricing.batchCost(b.price, b.orderCount),
+      tails: (b.orders || []).map(function (o) {
+        return typeof o === 'string' ? o.slice(-4) : (o.tail || '')
+      }),
+      assignee: s ? s.name : '',
+      phone: s ? s.phone : '',
+      studentId: s ? s._id : '',
+      reason: pick.reason,
+      missingCandidate: !s,
+    }
+  })
+
+  const text = assignEngine.buildChecklist(items, {
+    date: mmdd(now),
+    wave: items.length ? (batches[0].waveId || '') : '',
+  })
+
+  return {
+    items: items,
+    text: text,
+    summary: {
+      count: items.length,
+      totalOrders: items.reduce(function (s, x) { return s + x.orderCount }, 0),
+      totalCost: Math.round(items.reduce(function (s, x) { return s + (x.cost || 0) }, 0) * 100) / 100,
+      missing: items.filter(function (x) { return x.missingCandidate }).length,
+    },
+  }
+}
+
+/** 手动改派：把某一包指派给指定学生 */
+async function assignOne(args) {
+  const db = args.db
+  const event = args.event
+
+  const batchRes = await db.collection('batches').doc(event.batchId).get()
+  const batch = batchRes.data
+  if (!batch) throw AppError(404, '批次不存在')
+  if (batch.status !== 'POOLED' && batch.status !== 'ASSIGNED') {
+    throw AppError(409, '批次状态是 ' + batch.status + '，不能指派')
+  }
+
+  const stuRes = await db.collection('students').doc(event.studentId).get()
+  const student = stuRes.data
+  if (!student) throw AppError(404, '学生不存在')
+
+  const check = assignEngine.canAssign(student, batch, Date.now())
+  if (!check.ok) throw AppError(409, check.reason)
+
+  await db.collection('batches').doc(event.batchId).update({
+    data: {
+      status: 'ASSIGNED',
+      assignedTo: event.studentId,
+      assignedName: student.name || '',
+      assignedAt: Date.now(),
+      updatedAt: Date.now(),
+      version: db.command.inc(1),
+    },
+  })
+  await db.collection('students').doc(event.studentId).update({
+    data: { claimsToday: db.command.inc(1), activeClaims: db.command.inc(1) },
+  })
+
+  return { ok: true }
+}
+
+/** 一键按推荐指派全部 */
+async function assignAll(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+  const now = Date.now()
+
+  const batches = await fetchAll(db.collection('batches').where({ tenantId: tenantId, status: 'POOLED' }))
+  const students = await fetchAll(db.collection('students').where({ status: 'active' }))
+
+  let assigned = 0
+  let skipped = 0
+
+  for (const b of batches) {
+    const pick = assignEngine.pickBest(students, b, now)
+    if (!pick.student) { skipped++; continue }
+    try {
+      await assignOne({ db: db, event: { batchId: b._id, studentId: pick.student._id } })
+      assigned++
+    } catch (e) {
+      skipped++
+    }
+  }
+
+  return { assigned: assigned, skipped: skipped, total: batches.length }
+}
+
 // ---------------------------------------------------------------- 路由表
 
 
@@ -432,6 +555,9 @@ const HANDLERS = {
   'admin.publishBatch': { fn: publishBatch },
   'admin.publishAll': { fn: publishAll },
   'admin.settle': { fn: settleWallets },
+  'admin.checklist': { fn: buildAssignList },
+  'admin.assignBatch': { fn: assignOne },
+  'admin.assignAll': { fn: assignAll },
 }
 
 /**

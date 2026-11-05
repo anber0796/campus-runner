@@ -102,4 +102,16 @@ module.exports = {
   publishAll: function () {
     return call('admin.publishAll')
   },
+
+  checklist: function () {
+    return call('admin.checklist')
+  },
+
+  assignBatch: function (batchId, studentId) {
+    return call('admin.assignBatch', { batchId: batchId, studentId: studentId })
+  },
+
+  assignAll: function () {
+    return call('admin.assignAll')
+  },
 }
