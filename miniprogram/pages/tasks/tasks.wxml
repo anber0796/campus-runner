@@ -54,6 +54,7 @@
       </view>
 
       <view class="pool-meta">
+        <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
         <text>{{item.orderText}}</text>
         <text class="dot">·</text>
         <text>{{item.walkText}}</text>
@@ -80,7 +81,10 @@
           <view class="task-title">{{item.canteenName}}</view>
           <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
         </view>
-        <view class="{{item.statusClass}}">{{item.statusText}}</view>
+        <view class="head-right">
+          <view class="{{item.statusClass}}">{{item.statusText}}</view>
+          <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
+        </view>
       </view>
 
       <view class="stall-list" wx:if="{{item.stallLines.length}}">
@@ -111,7 +115,10 @@
           <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
           <view class="task-sub">按楼层从上到下送</view>
         </view>
-        <view class="{{item.statusClass}}">{{item.statusText}}</view>
+        <view class="head-right">
+          <view class="{{item.statusClass}}">{{item.statusText}}</view>
+          <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
+        </view>
       </view>
 
       <view class="task-foot">
@@ -132,6 +139,7 @@
       </view>
 
       <view class="done-meta">
+        <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
         <text class="done-orders">{{item.orderCount}} 单</text>
         <text class="done-earn">{{item.earnText}}</text>
         <text class="muted done-time" wx:if="{{item.timeText}}">{{item.timeText}}</text>

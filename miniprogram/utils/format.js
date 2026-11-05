@@ -40,7 +40,38 @@ function weekdayCN(d) {
   return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
 }
 
+/**
+ * 剩余时间：统一成「剩 12 分 / 超时 3 分」，并给出紧急级别
+ * level: over 已超时 / urgent ≤5 分 / warn 6~10 分 / ok 其余
+ */
+function remain(dueAt, now) {
+  if (!dueAt) return null
+  const ts = now || Date.now()
+  const min = Math.round((dueAt - ts) / 60000)
+
+  if (min < 0) return { min: min, text: '超时 ' + (-min) + ' 分', level: 'over' }
+  if (min <= 5) return { min: min, text: '剩 ' + min + ' 分', level: 'urgent' }
+  if (min <= 10) return { min: min, text: '剩 ' + min + ' 分', level: 'warn' }
+  return { min: min, text: '剩 ' + min + ' 分', level: 'ok' }
+}
+
+/** 取一组订单里最紧的那个 */
+function tightest(orders, now) {
+  const ts = now || Date.now()
+  let best = null
+  ;(orders || []).forEach(function (o) {
+    if (!o || !o.dueAt) return
+    if (o.delivered) return
+    const r = remain(o.dueAt, ts)
+    if (!r) return
+    if (!best || r.min < best.min) best = r
+  })
+  return best
+}
+
 module.exports = {
+  remain: remain,
+  tightest: tightest,
   money: money,
   moneyFixed: moneyFixed,
   tail: tail,

@@ -42,6 +42,8 @@ function mkOrders(tails, floorBase, canteenName) {
       canteenName: canteenName || '一食堂',
       stallName: st.name,
       stallFloor: st.floor,
+      // 承诺送达时刻：40 分钟时限，逐单错开几分钟，方便看倒计时梯度
+      dueAt: now + (18 + i * 6) * MINUTE,
       picked: false,
       delivered: false,
     }
@@ -127,7 +129,12 @@ state.batches.forEach(function (b) {
     b.orders.forEach(function (o) { o.picked = true })
   }
   if (b.status === 'DELIVERED') {
-    b.orders.forEach(function (o) { o.picked = true; o.delivered = true })
+    b.orders.forEach(function (o) {
+      o.picked = true
+      o.delivered = true
+      // 比承诺时间早到 4 分钟，示例数据里显示为"准时"
+      o.deliveredAt = (o.dueAt || Date.now()) - 4 * MINUTE
+    })
   }
 })
 
@@ -172,8 +179,10 @@ function shapeBatch(b) {
         canteenName: o.canteenName || '一食堂',
         stallName: o.stallName,
         stallFloor: o.stallFloor || 1,
+        dueAt: o.dueAt || 0,
         picked: !!o.picked,
         delivered: !!o.delivered,
+        deliveredAt: o.deliveredAt || 0,
       }
     }),
   }

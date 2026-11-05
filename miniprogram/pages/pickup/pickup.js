@@ -1,4 +1,5 @@
 const riderApi = require('../../utils/riderApi')
+const fmt = require('../../utils/format')
 
 /**
  * 按「档口在食堂的几楼」分组，楼层从低到高。
@@ -108,7 +109,14 @@ Page({
     const batch = this.data.batches.filter(function (b) { return b.id === id })[0]
     if (!batch) return
 
-    const orders = batch.orderList || []
+    const now = Date.now()
+    const orders = (batch.orderList || []).map(function (o) {
+      const r = fmt.remain(o.dueAt, now)
+      return Object.assign({}, o, {
+        remainText: r ? r.text : '',
+        remainLevel: r ? r.level : '',
+      })
+    })
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
     const groups = groupByStallFloor(orders)
 

@@ -183,3 +183,16 @@
 .order-info {
   flex: 1;
 }
+
+.o-remain {
+  font-size: 20rpx;
+  padding: 3rpx 10rpx;
+  border-radius: 6rpx;
+  margin-left: 10rpx;
+  background: #f2f3f5;
+  color: #4a5058;
+}
+
+.o-remain.warn { background: #fff4e5; color: #c26a00; }
+.o-remain.urgent { background: #fdecec; color: #d93b3b; font-weight: 600; }
+.o-remain.over { background: #d93b3b; color: #fff; font-weight: 600; }

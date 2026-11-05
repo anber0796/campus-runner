@@ -72,6 +72,9 @@ function shape(batch, withOrders) {
         stallName: o.stallName || '',
         // 档口在食堂的哪一层：决定骑手在食堂里的动线
         stallFloor: o.stallFloor || 1,
+        // 订单没存承诺时刻时，按"成批后 40 分钟送达"兜底
+        dueAt: o.dueAt || (batch.createdAt ? batch.createdAt + 40 * 60000 : 0),
+        deliveredAt: o.deliveredAt || 0,
       }
     })
   }

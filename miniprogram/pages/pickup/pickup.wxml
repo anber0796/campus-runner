@@ -58,6 +58,7 @@
 
         <view class="order-row {{o.picked ? 'row-done' : ''}}" wx:for="{{g.orders}}" wx:key="id" wx:for-item="o">
           <view class="stall-name">{{o.stallName || '—'}}</view>
+          <text class="o-remain {{o.remainLevel}}" wx:if="{{o.remainText}}">{{o.remainText}}</text>
           <view class="tail-box">{{o.tail}}</view>
 
           <view wx:if="{{undoId === o.id}}" class="undo-btn" bindtap="undoPick" data-id="{{o.id}}">撤销</view>

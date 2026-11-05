@@ -1,4 +1,5 @@
 const riderApi = require('../../utils/riderApi')
+const fmt = require('../../utils/format')
 
 /**
  * 把多个批次的待送订单打散，重新按「楼栋 → 楼层（降序）」组织。
@@ -90,6 +91,14 @@ Page({
           that.setData({ loading: false, groups: [], total: 0, done: true, primary: null })
           return
         }
+
+        // 每单算剩余时间
+        const now = Date.now()
+        all.forEach(function (o) {
+          const r = fmt.remain(o.dueAt, now)
+          o.remainText = r ? r.text : ''
+          o.remainLevel = r ? r.level : ''
+        })
 
         // 全局排序后的下一单，供底部主按钮用
         const sorted = all.slice().sort(function (a, b) {

@@ -28,7 +28,10 @@
         <view class="order-line" wx:for="{{f.orders}}" wx:key="id" wx:for-item="o">
           <view class="order-info">
             <view class="room">{{o.room}}</view>
-            <view class="muted">尾号 {{o.tail}}</view>
+            <view class="muted">
+              尾号 {{o.tail}}
+              <text class="o-remain {{o.remainLevel}}" wx:if="{{o.remainText}}">{{o.remainText}}</text>
+            </view>
           </view>
           <view class="deliver-btn {{busy ? 'disabled' : ''}}" bindtap="deliver"
                 data-id="{{o.id}}" data-batch="{{o.batchId}}">送达</view>

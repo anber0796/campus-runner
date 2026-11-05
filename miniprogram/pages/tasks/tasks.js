@@ -1,4 +1,5 @@
 const riderApi = require('../../utils/riderApi')
+const fmt = require('../../utils/format')
 
 function leftText(deadline) {
   if (!deadline) return ''
@@ -6,6 +7,30 @@ function leftText(deadline) {
   if (ms <= 0) return '已截止'
   const min = Math.floor(ms / 60000)
   return min < 1 ? '即将截止' : '剩 ' + min + ' 分'
+}
+
+function remainTextOf(b) {
+  if (!b) return ''
+  if (b.status === 'DELIVERED') {
+    const late = (b.orderList || []).reduce(function (m, o) {
+      if (!o.dueAt || !o.deliveredAt) return m
+      return Math.max(m, o.deliveredAt - o.dueAt)
+    }, -Infinity)
+    if (!isFinite(late)) return ''
+    return late > 0 ? '超时 ' + Math.round(late / 60000) + ' 分' : '准时'
+  }
+  const t = fmt.tightest(b.orderList, Date.now())
+  return t ? t.text : ''
+}
+
+function remainLevelOf(b) {
+  if (!b) return ''
+  if (b.status === 'DELIVERED') {
+    const txt = remainTextOf(b)
+    return txt.indexOf('超时') === 0 ? 'over' : 'ok'
+  }
+  const t = fmt.tightest(b.orderList, Date.now())
+  return t ? t.level : ''
 }
 
 function fmtTime(ts) {
@@ -59,12 +84,31 @@ Page({
   },
 
   tick() {
+    const remap = function (list) {
+      return (list || []).map(function (b) {
+        return Object.assign({}, b, {
+          remainText: remainTextOf(b),
+          remainLevel: remainLevelOf(b),
+        })
+      })
+    }
+
+    this.setData({
+      pick: remap(this.data.pick),
+      deliver: remap(this.data.deliver),
+    })
+
     if (!this.data.pool.length) return
     let expired = false
     const pool = this.data.pool.map(function (b) {
       const t = leftText(b.claimDeadline)
       if (t === '已截止') expired = true
-      return Object.assign({}, b, { leftText: t, urgent: t === '即将截止' || t === '已截止' })
+      return Object.assign({}, b, {
+        leftText: t,
+        urgent: t === '即将截止' || t === '已截止',
+        remainText: remainTextOf(b),
+        remainLevel: remainLevelOf(b),
+      })
     })
     this.setData({ pool: pool })
     if (expired) this.load()
@@ -121,6 +165,8 @@ Page({
             leftText: leftText(b.claimDeadline),
             urgent: leftText(b.claimDeadline) === '即将截止',
             walkText: b.walkMinutes ? '步行 ' + b.walkMinutes + ' 分钟' : '',
+            remainText: remainTextOf(b),
+            remainLevel: remainLevelOf(b),
             timeText: b.deliveredAt ? fmtTime(b.deliveredAt) : '',
           })
         }
