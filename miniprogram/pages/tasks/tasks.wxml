@@ -25,7 +25,10 @@
 
     <view class="task" wx:for="{{pool}}" wx:key="id">
       <view class="task-head">
-        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view>
+          <view class="task-title">{{item.canteenName}}</view>
+          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+        </view>
         <view class="earn">{{item.earnText}}</view>
       </view>
 
@@ -52,7 +55,10 @@
   <block wx:elif="{{tab === 'pick'}}">
     <view class="task" wx:for="{{pick}}" wx:key="id">
       <view class="task-head">
-        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view>
+          <view class="task-title">{{item.canteenName}}</view>
+          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+        </view>
         <view class="{{item.statusClass}}">{{item.statusText}}</view>
       </view>
       <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
@@ -74,7 +80,10 @@
   <block wx:else>
     <view class="task" wx:for="{{deliver}}" wx:key="id">
       <view class="task-head">
-        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view>
+          <view class="task-title">{{item.canteenName}}</view>
+          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+        </view>
         <view class="{{item.statusClass}}">{{item.statusText}}</view>
       </view>
       <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
@@ -94,7 +103,10 @@
   <block wx:if="{{tab === 'done'}}">
     <view class="task" wx:for="{{done}}" wx:key="id">
       <view class="task-head">
-        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view>
+          <view class="task-title">{{item.canteenName}}</view>
+          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+        </view>
         <view class="tag tag-green">已完成</view>
       </view>
       <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>

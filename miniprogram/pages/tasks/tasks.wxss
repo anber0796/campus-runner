@@ -132,3 +132,9 @@
 }
 
 .mt8 { margin-top: 8rpx; }
+
+.task-sub {
+  font-size: 24rpx;
+  color: #8a8f99;
+  margin-top: 6rpx;
+}

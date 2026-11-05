@@ -25,7 +25,7 @@ function suggest(maxFloor, backlog) {
   return round2(Math.min(3.0, Math.max(0.5, 1.0 + floor + backlogBonus)))
 }
 
-function mkOrders(tails, floorBase) {
+function mkOrders(tails, floorBase, canteenName) {
   const STALLS = [
     { name: '川味小炒', floor: 1 },
     { name: '砂锅米线', floor: 2 },
@@ -39,7 +39,7 @@ function mkOrders(tails, floorBase) {
       tail: t,
       room: String(floorBase + i) + '0' + (i + 1),
       floor: floorBase + i,
-      canteenName: '一食堂',
+      canteenName: canteenName || '一食堂',
       stallName: st.name,
       stallFloor: st.floor,
       picked: false,
@@ -61,44 +61,44 @@ const state = {
   batches: [
     // 待发单（草稿）
     {
-      id: 'D1', status: 'DRAFT', buildingId: '3栋', buildingIds: ['3栋'],
+      id: 'D1', status: 'DRAFT', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2',
       orders: mkOrders(['8821', '5567', '3390'], 4), orderCount: 3,
     },
     {
-      id: 'D2', status: 'DRAFT', buildingId: '5栋', buildingIds: ['5栋'],
+      id: 'D2', status: 'DRAFT', canteenName: '二食堂', buildingId: '5栋', buildingIds: ['5栋'],
       floorBand: 'high', minFloor: 6, maxFloor: 7, waveId: 'W2',
-      orders: mkOrders(['1102', '7743'], 6), orderCount: 2,
+      orders: mkOrders(['1102', '7743'], 6, '二食堂'), orderCount: 2,
     },
     // 已在池子里（学生可抢）
     {
-      id: 'P1', status: 'POOLED', buildingId: '3栋', buildingIds: ['3栋'],
+      id: 'P1', status: 'POOLED', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
       price: 1.2, orders: mkOrders(['2205', '6698', '9012'], 1), orderCount: 3,
       claimDeadline: now + 12 * MINUTE,
     },
     {
-      id: 'P3', status: 'POOLED', buildingId: '5栋', buildingIds: ['5栋'],
+      id: 'P3', status: 'POOLED', canteenName: '二食堂', buildingId: '5栋', buildingIds: ['5栋'],
       floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
-      price: 1.1, orders: mkOrders(['5521', '8834', '1177'], 1), orderCount: 3,
+      price: 1.1, orders: mkOrders(['5521', '8834', '1177'], 1, '二食堂'), orderCount: 3,
       claimDeadline: now + 14 * MINUTE,
     },
     {
-      id: 'P5', status: 'DELIVERED', buildingId: '3栋', buildingIds: ['3栋'],
+      id: 'P5', status: 'DELIVERED', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'low', minFloor: 2, maxFloor: 3, waveId: 'W2',
       price: 1.15, orders: mkOrders(['9901', '9902', '9903'], 2), orderCount: 3,
       assignedOpenid: 'mock-openid', assignedName: '张同学',
       assignedAt: now - 3 * HOUR, deliveredAt: now - 2 * HOUR,
     },
     {
-      id: 'P4', status: 'PICKED', buildingId: '3栋', buildingIds: ['3栋'],
+      id: 'P4', status: 'PICKED', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'high', minFloor: 6, maxFloor: 7, waveId: 'W2',
       price: 1.9, orders: mkOrders(['6601', '6602'], 6), orderCount: 2,
       assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 20 * MINUTE,
       pickedAt: now - 10 * MINUTE,
     },
     {
-      id: 'P2', status: 'ASSIGNED', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
+      id: 'P2', status: 'ASSIGNED', canteenName: '一食堂', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
       floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: true,
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,
       assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 5 * MINUTE,
@@ -140,6 +140,8 @@ function shapeBatch(b) {
   const price = b.price || 0
   return {
     id: b.id,
+    canteenId: b.canteenId,
+    canteenName: b.canteenName || '食堂',
     buildingId: b.buildingId,
     buildingIds: b.buildingIds,
     floorBand: b.floorBand,
