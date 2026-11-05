@@ -80,13 +80,17 @@ Page({
           return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
         })
 
-        const matched = active.filter(function (b) {
+        const want = that.filter.canteen ? decodeURIComponent(that.filter.canteen) : ''
+        let matched = active.filter(function (b) {
           if (that.filter.id) return b.id === that.filter.id
-          if (that.filter.canteen) {
-            return b.canteenId === that.filter.canteen && b.waveId === that.filter.wave
-          }
-          return true
+          if (!want) return true
+          const sameCanteen = b.canteenId === want || b.canteenName === want
+          const sameWave = !that.filter.wave || b.waveId === that.filter.wave
+          return sameCanteen && sameWave
         })
+
+        // 兜底：按食堂匹配不到就展示全部待取餐，宁可多给也不能白屏
+        if (!matched.length) matched = active
 
         if (!matched.length) {
           that.setData({

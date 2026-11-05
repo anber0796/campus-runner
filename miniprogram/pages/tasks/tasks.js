@@ -302,8 +302,10 @@ Page({
   goPickup(e) {
     const g = this.data.pick[e.currentTarget.dataset.index]
     if (!g) return
+    // canteenId 缺失时退回用名字匹配，别把 undefined 拼进 URL
+    const key = g.canteenId || g.canteenName
     wx.navigateTo({
-      url: '/pages/pickup/pickup?canteen=' + g.canteenId + '&wave=' + g.waveId,
+      url: '/pages/pickup/pickup?canteen=' + encodeURIComponent(key) + '&wave=' + (g.waveId || ''),
     })
   },
 
