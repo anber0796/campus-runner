@@ -12,6 +12,11 @@ function blank(openid) {
     canteenIds: [],
     canteenNames: [],
     waveIds: [],
+    // 抢单模型字段
+    coverageBuildings: [],
+    teachingBuildingId: '',
+    dismissTime: '',
+    vehicle: 'walk',
     platformRiderId: '',
     credit: 100,
     status: 'none',

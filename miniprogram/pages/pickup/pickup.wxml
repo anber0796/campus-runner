@@ -1,0 +1,78 @@
+<view class="container">
+
+  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+
+  <!-- 没有进行中的批次 -->
+  <view class="empty" wx:if="{{!batches.length && !loading}}">
+    手上还没有批次{{'\n'}}去抢单大厅看看
+  </view>
+  <button class="btn-primary mt16" wx:if="{{!batches.length && !loading}}" bindtap="goGrab">去抢单</button>
+
+  <!-- 批次切换 -->
+  <view class="tabs" wx:if="{{batches.length > 1}}">
+    <view wx:for="{{batches}}" wx:key="id"
+          class="tab {{current && current.id === item.id ? 'active' : ''}}"
+          bindtap="selectBatch" data-id="{{item.id}}">
+      {{item.buildingText || item.buildingId}} · {{item.orderCount}}单
+    </view>
+  </view>
+
+  <block wx:if="{{current}}">
+    <view class="card head-card">
+      <view class="row-between">
+        <view class="title">{{current.buildingIds ? current.buildingIds.join(' + ') : current.buildingId}} · {{current.floorRange}}</view>
+        <view class="earn">¥{{current.earn}}</view>
+      </view>
+      <view class="muted mt8">取齐后直接走，不用分拣</view>
+    </view>
+
+    <!-- 取餐 -->
+    <view class="card">
+      <view class="row-between">
+        <view class="title">取餐</view>
+        <view class="scan-btn" bindtap="scan">扫码</view>
+      </view>
+      <view class="muted mt8">扫小票条码，或手动输入运单号（输后 4 位也行）</view>
+
+      <view class="manual-row">
+        <input class="manual-input" placeholder="运单号" placeholder-class="ph"
+               value="{{inputNo}}" bindinput="onInputNo" confirm-type="done" bindconfirm="manualPickup" />
+        <view class="manual-btn {{busy ? 'disabled' : ''}}" bindtap="manualPickup">确认</view>
+      </view>
+
+      <view class="divider"></view>
+
+      <view class="order-row" wx:for="{{orders}}" wx:key="id">
+        <view class="tail-box">{{item.tail}}</view>
+        <view class="order-info">
+          <view class="order-stall">{{item.stallName || '—'}}</view>
+          <view class="muted">{{current.buildingId}} {{item.room}} · {{item.floor}} 层</view>
+        </view>
+
+        <view wx:if="{{item.delivered}}" class="state done">已送达</view>
+        <view wx:elif="{{item.picked}}" class="state picked">已取</view>
+        <view wx:else class="state wait">待取</view>
+      </view>
+    </view>
+
+    <!-- 送达 -->
+    <view class="card">
+      <view class="title">送达</view>
+      <view class="muted mt8">送到门口拍一张，人不在就挂门把手再拍</view>
+
+      <view class="deliver-list">
+        <view class="deliver-row" wx:for="{{orders}}" wx:key="id" wx:if="{{item.picked && !item.delivered}}">
+          <view class="deliver-info">
+            <text class="tail-inline">{{item.tail}}</text>
+            <text class="muted">{{item.room}}</text>
+          </view>
+          <view class="deliver-btn" bindtap="deliver" data-id="{{item.id}}">拍照送达</view>
+        </view>
+        <view class="muted" wx:if="{{!orders.length}}">还没有订单</view>
+      </view>
+    </view>
+  </block>
+
+  <view class="empty" wx:elif="{{loading}}">加载中…</view>
+
+</view>

@@ -75,6 +75,18 @@
       <text class="menu-label">健康证 / 保险</text>
       <text class="menu-value">{{student.healthExpire || '待上传'}}<text class="arrow">›</text></text>
     </view>
+    <view class="menu-item" bindtap="goGrab">
+      <text class="menu-label">抢单大厅</text>
+      <text class="menu-value">按批次抢<text class="arrow">›</text></text>
+    </view>
+    <view class="menu-item" bindtap="goPickup">
+      <text class="menu-label">取餐与送达</text>
+      <text class="menu-value"><text class="arrow">›</text></text>
+    </view>
+    <view class="menu-item" bindtap="goInvite">
+      <text class="menu-label">邀请好友</text>
+      <text class="menu-value">最高 ¥50/组<text class="arrow">›</text></text>
+    </view>
     <view class="menu-item" bindtap="goAdmin">
       <text class="menu-label">运营后台</text>
       <text class="menu-value">仅运营人员<text class="arrow">›</text></text>

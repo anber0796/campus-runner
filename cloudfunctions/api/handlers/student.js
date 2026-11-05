@@ -32,6 +32,11 @@ module.exports = {
       canteenIds: p.canteenIds || [],
       canteenNames: p.canteenNames || [],
       waveIds: p.waveIds || [],
+      // 抢单模型新增：覆盖楼栋、教学楼、下课时间、交通工具
+      coverageBuildings: p.coverageBuildings || [],
+      teachingBuildingId: p.teachingBuildingId || '',
+      dismissTime: p.dismissTime || '',
+      vehicle: p.vehicle || 'walk',
       platformRiderId: p.platformRiderId || '',
       healthExpire: p.healthExpire || '',
       // TODO(合规)：生产环境这里应先落 pending，由运营核对健康证后再置 active。

@@ -30,6 +30,40 @@
     </view>
   </view>
 
+  <view class="section-title">上课动线（决定推给你哪些单）</view>
+  <view class="card">
+    <picker mode="selector" range="{{teachings}}" value="{{teachingIndex}}" bindchange="onTeachingChange">
+      <view class="field">
+        <text class="field-label">常去教学楼</text>
+        <view class="field-input field-picker">{{teachings[teachingIndex]}}<text class="arrow">›</text></view>
+      </view>
+    </picker>
+    <picker mode="selector" range="{{dismissTimes}}" value="{{dismissIndex}}" bindchange="onDismissChange">
+      <view class="field">
+        <text class="field-label">下课时间</text>
+        <view class="field-input field-picker">{{dismissTimes[dismissIndex]}}<text class="arrow">›</text></view>
+      </view>
+    </picker>
+    <view class="field">
+      <text class="field-label">交通工具</text>
+      <view class="chips-inline">
+        <view wx:for="{{vehicles}}" wx:key="id"
+              class="chip chip-sm {{vehicle === item.id ? 'active' : ''}}"
+              bindtap="pickVehicle" data-id="{{item.id}}">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">可送楼栋（主楼必含，最多 3 栋）</view>
+  <view class="card">
+    <view class="chips">
+      <view wx:for="{{buildings}}" wx:key="*this"
+            class="chip {{selectedCoverage.indexOf(item) >= 0 ? 'active' : ''}}"
+            bindtap="toggleCoverage" data-name="{{item}}">{{item}}</view>
+    </view>
+    <view class="muted">多选邻楼能接更多单，但走的路也更多</view>
+  </view>
+
   <view class="section-title">资质（合规前置）</view>
   <view class="card">
     <view class="cert-row" bindtap="uploadCert" data-type="studentCard">

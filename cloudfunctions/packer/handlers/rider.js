@@ -34,9 +34,9 @@ async function fetchAll(query, pageSize) {
 }
 
 /** 批次展示所需的字段，别把内部字段全甩给前端 */
-function shape(batch) {
+function shape(batch, withOrders) {
   const count = batch.orderCount || (batch.orders || []).length
-  return {
+  const out = {
     id: batch._id,
     canteenId: batch.canteenId,
     buildingId: batch.buildingId,
@@ -54,6 +54,24 @@ function shape(batch) {
     }),
     claimDeadline: batch.claimDeadline || 0,
   }
+
+  if (withOrders) {
+    out.orderList = (batch.orders || []).map(function (o) {
+      if (typeof o === 'string') {
+        return { id: o, tail: o.slice(-4), picked: false, delivered: false, room: '', floor: 0 }
+      }
+      return {
+        id: o.id,
+        tail: o.tail || String(o.channelOrderNo || '').slice(-4),
+        picked: !!o.picked,
+        delivered: !!o.delivered,
+        room: o.room || '',
+        floor: o.floor || 0,
+        stallName: o.stallName || '',
+      }
+    })
+  }
+  return out
 }
 
 module.exports = {
@@ -151,7 +169,7 @@ module.exports = {
     const db = args.db
     const openid = args.ctx.OPENID
     const list = await fetchAll(db.collection(BATCH).where({ claimedBy: openid }))
-    const shaped = list.map(shape)
+    const shaped = list.map(function (b) { return shape(b, true) })
     return {
       active: shaped.filter(function (b) { return b.status !== 'DELIVERED' }),
       finished: shaped.filter(function (b) { return b.status === 'DELIVERED' }),

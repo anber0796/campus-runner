@@ -54,6 +54,18 @@ Page({
     wx.switchTab({ url: '/pages/order/order' })
   },
 
+  goGrab() {
+    wx.navigateTo({ url: '/pages/grab/grab' })
+  },
+
+  goPickup() {
+    wx.navigateTo({ url: '/pages/pickup/pickup' })
+  },
+
+  goInvite() {
+    wx.navigateTo({ url: '/pages/invite/invite' })
+  },
+
   goAdmin() {
     wx.navigateTo({ url: '/pages/admin/login/login' })
   },

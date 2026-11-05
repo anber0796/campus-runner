@@ -10,7 +10,8 @@
     "pages/admin/login/login",
     "pages/admin/dashboard/dashboard",
     "pages/grab/grab",
-    "pages/invite/invite"
+    "pages/invite/invite",
+    "pages/pickup/pickup"
   ],
   "window": {
     "backgroundTextStyle": "dark",
