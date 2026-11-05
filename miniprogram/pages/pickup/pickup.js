@@ -1,5 +1,39 @@
 const riderApi = require('../../utils/riderApi')
 
+/**
+ * 按「档口在食堂的几楼」分组，楼层从低到高。
+ * 目的是让骑手一层一层往上取，不用上上下下折返——
+ * 食堂里最费时间的不是排队，是来回跑。
+ */
+function groupByStallFloor(orders) {
+  const map = {}
+  ;(orders || []).forEach(function (o) {
+    const f = o.stallFloor || 1
+    if (!map[f]) map[f] = []
+    map[f].push(o)
+  })
+
+  return Object.keys(map)
+    .map(Number)
+    .sort(function (a, b) { return a - b })
+    .map(function (f) {
+      const list = map[f]
+      const stalls = []
+      list.forEach(function (o) {
+        if (o.stallName && stalls.indexOf(o.stallName) < 0) stalls.push(o.stallName)
+      })
+      return {
+        floor: f,
+        label: f + ' 楼',
+        count: list.length,
+        pickedCount: list.filter(function (o) { return o.picked }).length,
+        allDone: list.every(function (o) { return o.picked }),
+        stallText: stalls.join('、'),
+        orders: list,
+      }
+    })
+}
+
 Page({
   data: {
     loading: true,
@@ -10,6 +44,7 @@ Page({
     inputNo: '',
     busy: false,
     allPicked: false,
+    groups: [],
   },
 
   onLoad(query) {
@@ -52,7 +87,12 @@ Page({
     const orders = batch.orderList || []
     // 全部取齐后，取餐板块整块隐藏，页面只剩「送达」
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
-    this.setData({ current: batch, orders: orders, allPicked: allPicked })
+    this.setData({
+      current: batch,
+      orders: orders,
+      allPicked: allPicked,
+      groups: groupByStallFloor(orders),
+    })
   },
 
   onInputNo(e) {

@@ -137,3 +137,73 @@
 }
 
 .pick-order-btn.disabled { background: #c9cdd4; }
+
+.mt8 { margin-top: 8rpx; }
+
+/* 取餐动线 */
+.route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 20rpx;
+  padding: 16rpx 18rpx;
+  background: #f7fdf9;
+  border-radius: 12rpx;
+}
+
+.route-step {
+  font-size: 24rpx;
+  color: #1f9d55;
+  font-weight: 600;
+}
+
+.route-step.done {
+  color: #a9aeb5;
+  text-decoration: line-through;
+}
+
+.route-arrow {
+  font-size: 22rpx;
+  color: #c9cdd4;
+  margin: 0 12rpx;
+}
+
+/* 楼层分组 */
+.floor-block {
+  margin-top: 26rpx;
+}
+
+.floor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12rpx;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+
+.floor-left {
+  display: flex;
+  align-items: center;
+}
+
+.floor-badge {
+  width: 56rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  background: #1f9d55;
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  margin-right: 14rpx;
+}
+
+.floor-badge.done {
+  background: #c9cdd4;
+}
+
+.floor-stalls {
+  font-size: 26rpx;
+  color: #3d424a;
+}

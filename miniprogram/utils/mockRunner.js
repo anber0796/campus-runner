@@ -26,13 +26,22 @@ function suggest(maxFloor, backlog) {
 }
 
 function mkOrders(tails, floorBase) {
+  const STALLS = [
+    { name: '川味小炒', floor: 1 },
+    { name: '砂锅米线', floor: 2 },
+    { name: '煎饼果子', floor: 1 },
+    { name: '麻辣烫', floor: 3 },
+  ]
   return tails.map(function (t, i) {
+    const st = STALLS[i % 4]
     return {
       id: 'o' + t,
       tail: t,
       room: String(floorBase + i) + '0' + (i + 1),
       floor: floorBase + i,
-      stallName: ['川味小炒', '砂锅米线', '煎饼果子', '麻辣烫'][i % 4],
+      canteenName: '一食堂',
+      stallName: st.name,
+      stallFloor: st.floor,
       picked: false,
       delivered: false,
     }
@@ -149,7 +158,9 @@ function shapeBatch(b) {
         tail: o.tail,
         room: o.room,
         floor: o.floor,
+        canteenName: o.canteenName || '一食堂',
         stallName: o.stallName,
+        stallFloor: o.stallFloor || 1,
         picked: !!o.picked,
         delivered: !!o.delivered,
       }

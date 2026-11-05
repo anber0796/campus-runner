@@ -68,7 +68,10 @@ function shape(batch, withOrders) {
         delivered: !!o.delivered,
         room: o.room || '',
         floor: o.floor || 0,
+        canteenName: o.canteenName || batch.canteenName || '',
         stallName: o.stallName || '',
+        // 档口在食堂的哪一层：决定骑手在食堂里的动线
+        stallFloor: o.stallFloor || 1,
       }
     })
   }
