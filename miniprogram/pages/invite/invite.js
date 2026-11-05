@@ -5,6 +5,7 @@ Page({
     loading: true,
     error: '',
     code: '',
+    bound: false,
     registered: 0,
     firstOrdered: 0,
     amount: 0,
@@ -33,6 +34,7 @@ Page({
         }
         that.setData({
           loading: false,
+          bound: !!d.bound,
           code: d.code,
           registered: d.registered,
           firstOrdered: d.firstOrdered,

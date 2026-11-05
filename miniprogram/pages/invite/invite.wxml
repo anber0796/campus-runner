@@ -45,7 +45,7 @@
     <view class="bar-num">{{firstOrdered % 10}}/10 人已跑首单</view>
   </view>
 
-  <view class="card">
+  <view class="card" wx:if="{{!bound}}">
     <view class="title">填别人的邀请码</view>
     <view class="muted mt8">每人只能被邀请一次</view>
     <view class="bind-row">

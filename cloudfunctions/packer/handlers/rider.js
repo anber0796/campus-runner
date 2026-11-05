@@ -386,7 +386,11 @@ module.exports = {
       return { registeredAt: s.createdAt, firstOrderAt: s.firstOrderAt || null }
     })
 
-    return Object.assign({ code: code }, invite.calcInviteReward(invitees))
+    return Object.assign({
+      code: code,
+      // 已经被人邀请过就不再显示"填邀请码"，少一个干扰项
+      bound: !!student.invitedBy,
+    }, invite.calcInviteReward(invitees))
   },
 
   /** 填别人的邀请码 */

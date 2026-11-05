@@ -115,3 +115,14 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+.batch-sub {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 8rpx;
+}
+
+.price-row {
+  justify-content: space-between;
+  margin-top: 22rpx;
+}

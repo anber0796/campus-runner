@@ -22,7 +22,7 @@
         <view class="title">{{current.canteenName || '食堂'}} · {{current.orderCount}} 单</view>
         <view class="earn">¥{{current.earn}}</view>
       </view>
-      <view class="muted mt8">送回 {{current.buildingIds ? current.buildingIds.join(' + ') : current.buildingId}} · {{current.floorRange}}</view>
+      <view class="muted mt8" wx:if="{{allPicked}}">送回 {{current.buildingIds ? current.buildingIds.join(' + ') : current.buildingId}} · {{current.floorRange}}</view>
     </view>
 
     <!-- 取餐：全部取齐后整块隐藏 -->
@@ -43,15 +43,6 @@
           <view class="next-remain">还剩 {{nextStop.remain}} 单</view>
         </view>
       </view>
-
-      <!-- 楼层路线 -->
-      <view class="route" wx:if="{{groups.length > 1}}">
-        <block wx:for="{{groups}}" wx:key="floor">
-          <text class="route-step {{item.allDone ? 'done' : ''}}">{{item.label}} · {{item.count}}单</text>
-          <text class="route-arrow" wx:if="{{index < groups.length - 1}}">→</text>
-        </block>
-      </view>
-      <view class="muted mt8" wx:else>都在 {{groups[0].label}}，一趟取完</view>
 
       <!-- 按楼层分组 -->
       <view class="floor-block" wx:for="{{groups}}" wx:key="floor" wx:for-item="g">

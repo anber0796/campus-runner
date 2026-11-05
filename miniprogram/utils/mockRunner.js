@@ -283,6 +283,7 @@ const handlers = {
 
   'rider.invite': function () {
     return delay({
+      bound: false,
       code: state.inviteCode,
       amount: state.invite.amount,
       registered: state.invite.registered,

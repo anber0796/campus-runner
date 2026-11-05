@@ -63,10 +63,6 @@
   </view>
 
   <view class="card">
-    <view class="menu-item" bindtap="goOrder">
-      <text class="menu-label">我的单</text>
-      <text class="menu-value">进行中 / 已完成<text class="arrow">›</text></text>
-    </view>
     <view class="menu-item">
       <text class="menu-label">接单规则与信用分</text>
       <text class="menu-value"><text class="arrow">›</text></text>

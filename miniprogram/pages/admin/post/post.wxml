@@ -31,31 +31,25 @@
 
   <view class="batch" wx:for="{{batches}}" wx:key="id">
     <view class="batch-head">
-      <view class="batch-title">{{item.buildingText}} · {{item.floorRange}}</view>
-      <view class="tag tag-green">{{item.orderCount}} 单</view>
-    </view>
-
-    <view class="breakdown">
-      <text>基础 {{item.breakdown.base}}</text>
-      <text class="dot">+</text>
-      <text>楼层 {{item.breakdown.floor}}</text>
-      <text class="dot">+</text>
-      <text>积压 {{item.breakdown.backlog}}</text>
+      <view>
+        <view class="batch-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view class="batch-sub">{{item.orderCount}} 单 · 整批 {{item.costText}}</view>
+      </view>
+      <view class="tag tag-green">建议 {{item.suggestedPrice}}/单</view>
     </view>
 
     <view class="price-row">
-      <text class="muted">建议 ¥{{item.suggestedPrice}}/单</text>
       <view class="price-input-wrap">
         <text class="yuan">¥</text>
         <input class="price-input" type="digit" value="{{item.priceInput}}"
                bindinput="onPriceInput" data-index="{{index}}" />
         <text class="muted">/单</text>
       </view>
+      <view class="publish-btn {{busy ? 'disabled' : ''}}" bindtap="publishOne" data-index="{{index}}">发单</view>
     </view>
 
-    <view class="batch-foot">
-      <text class="muted">整批 {{item.costText}}</text>
-      <view class="publish-btn {{busy ? 'disabled' : ''}}" bindtap="publishOne" data-index="{{index}}">发单</view>
+    <view class="breakdown">
+      建议价构成：基础 {{item.breakdown.base}} + 楼层 {{item.breakdown.floor}} + 积压 {{item.breakdown.backlog}}
     </view>
   </view>
 

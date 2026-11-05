@@ -8,6 +8,7 @@ Page({
     pending: '0.00',
     settled: '0.00',
     available: '0.00',
+    todayIncome: '0.00',
     logs: [],
     canWithdraw: false,
   },
@@ -28,7 +29,17 @@ Page({
       .wallet()
       .then(function (w) {
         const b = w.balance || {}
+
+        // 学生每天真正关心的是"今天赚了多少"，不是累计
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const todaySum = (w.logs || []).reduce(function (acc, l) {
+          const isIncome = l.type === 'claim_income' || l.type === 'invite_reward'
+          return (isIncome && (l.createdAt || 0) >= today.getTime()) ? acc + (l.amount || 0) : acc
+        }, 0)
+
         that.setData({
+          todayIncome: fmt.moneyFixed(todaySum),
           loading: false,
           pending: fmt.moneyFixed(b.pending),
           settled: fmt.moneyFixed(b.settled),
