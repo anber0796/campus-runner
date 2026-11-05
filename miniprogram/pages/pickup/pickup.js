@@ -54,6 +54,8 @@ Page({
     groups: [],
     nextStop: null,
     undoId: '',
+    deliverList: [],
+    primary: null,
   },
 
   onLoad(query) {
@@ -114,12 +116,30 @@ Page({
       }
     }
 
+    // 送达按寝室楼层从高到低：先把高层送完，一路往下走，不用来回爬
+    const deliverList = orders
+      .filter(function (o) { return o.picked && !o.delivered })
+      .slice()
+      .sort(function (a, b) { return (b.floor || 0) - (a.floor || 0) })
+
+    // 底部主按钮：永远只给「现在该做的那一件事」
+    let primary = null
+    if (!allPicked) {
+      primary = { kind: 'pick', label: '扫码取餐', sub: '还剩 ' + (orders.length - orders.filter(function (o) { return o.picked }).length) + ' 单' }
+    } else if (deliverList.length) {
+      primary = { kind: 'deliver', targetId: deliverList[0].id, label: '送达 ' + deliverList[0].tail, sub: '还剩 ' + deliverList.length + ' 单' }
+    } else {
+      primary = { kind: 'done', label: '这一批已完成', sub: '' }
+    }
+
     this.setData({
       current: batch,
       orders: orders,
       allPicked: allPicked,
       groups: groups,
       nextStop: nextStop,
+      deliverList: deliverList,
+      primary: primary,
     })
   },
 

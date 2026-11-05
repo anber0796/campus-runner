@@ -10,6 +10,8 @@ Page({
     amount: 0,
     nextRegisterGap: 10,
     nextOrderGap: 10,
+    regPercent: 0,
+    orderPercent: 0,
     inputCode: '',
     binding: false,
   },
@@ -24,6 +26,11 @@ Page({
     riderApi
       .invite()
       .then(function (d) {
+        // 当前这一组的完成度：刚好整除时显示 100%，避免"拉满 10 人却显示 0/10"
+        const pct = function (n) {
+          const r = n % 10
+          return (r === 0 && n > 0) ? 100 : r * 10
+        }
         that.setData({
           loading: false,
           code: d.code,
@@ -32,6 +39,8 @@ Page({
           amount: d.amount,
           nextRegisterGap: d.nextRegisterGap,
           nextOrderGap: d.nextOrderGap,
+          regPercent: pct(d.registered),
+          orderPercent: pct(d.firstOrdered),
         })
       })
       .catch(function (e) {

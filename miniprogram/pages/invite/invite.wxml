@@ -30,10 +30,19 @@
       <text>满 10 人注册 → 奖 20 元</text>
       <text class="muted">还差 {{nextRegisterGap}} 人</text>
     </view>
-    <view class="progress-line">
+    <view class="bar">
+      <view class="bar-fill" style="width: {{regPercent}}%"></view>
+    </view>
+    <view class="bar-num">{{registered % 10}}/10 人已注册</view>
+
+    <view class="progress-line mt16">
       <text>这 10 人完成首单 → 再奖 30 元</text>
       <text class="muted">还差 {{nextOrderGap}} 人</text>
     </view>
+    <view class="bar">
+      <view class="bar-fill green2" style="width: {{orderPercent}}%"></view>
+    </view>
+    <view class="bar-num">{{firstOrdered % 10}}/10 人已跑首单</view>
   </view>
 
   <view class="card">

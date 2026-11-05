@@ -6,6 +6,7 @@
     <view class="wallet-label">可提现</view>
     <view class="wallet-amount">¥{{available}}</view>
     <view class="wallet-sub">待结算 ¥{{pending}} · 累计 ¥{{settled}}</view>
+    <view class="wallet-hint" wx:if="{{pending !== '0.00'}}">待结算的钱，送达满 24 小时后自动变成可提现</view>
     <view class="wallet-btn {{canWithdraw ? '' : 'disabled'}}" bindtap="withdraw">提现</view>
   </view>
 

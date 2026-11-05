@@ -94,7 +94,7 @@
       </view>
 
       <view class="deliver-list">
-        <view class="deliver-row" wx:for="{{orders}}" wx:key="id" wx:if="{{item.picked && !item.delivered}}">
+        <view class="deliver-row" wx:for="{{deliverList}}" wx:key="id">
           <view class="deliver-info">
             <text class="tail-inline">{{item.tail}}</text>
             <text class="muted">{{item.room}} · {{item.floor}} 层</text>
@@ -107,5 +107,17 @@
   </block>
 
   <view class="empty" wx:elif="{{loading}}">加载中…</view>
+
+  <!-- 底部固定主按钮：一屏只给一个"现在该做什么" -->
+  <view class="bottom-bar" wx:if="{{primary}}">
+    <view class="bottom-info">
+      <view class="bottom-label">{{primary.label}}</view>
+      <view class="bottom-sub" wx:if="{{primary.sub}}">{{primary.sub}}</view>
+    </view>
+    <view class="bottom-btn {{primary.kind === 'done' ? 'done' : ''}} {{busy ? 'disabled' : ''}}"
+          bindtap="primaryTap">
+      {{primary.kind === 'pick' ? '扫码' : (primary.kind === 'deliver' ? '拍照送达' : '完成')}}
+    </view>
+  </view>
 
 </view>

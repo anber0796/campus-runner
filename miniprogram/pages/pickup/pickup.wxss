@@ -276,3 +276,51 @@
   font-size: 27rpx;
   font-weight: 600;
 }
+
+/* 底部主按钮 */
+.container {
+  padding-bottom: 200rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(16, 24, 40, 0.08);
+}
+
+.bottom-label {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1c1f26;
+}
+
+.bottom-sub {
+  font-size: 23rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.bottom-btn {
+  min-width: 240rpx;
+  text-align: center;
+  line-height: 92rpx;
+  border-radius: 46rpx;
+  background: #1f9d55;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.bottom-btn.done {
+  background: #e8f7ee;
+  color: #1f9d55;
+}
+
+.bottom-btn.disabled { background: #c9cdd4; color: #fff; }
