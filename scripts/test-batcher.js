@@ -179,11 +179,37 @@ test('7 层封顶 1.9 元/单（+0.3）', function () {
   assert.strictEqual(r.batches[0].ceiling, 1.9)
 })
 
-test('批次按最高层计价（一批里有一单在 7 楼就按 7 楼）', function () {
-  const orders = [mkOrder('f1', { floor: 2 }), mkOrder('f2', { floor: 7 })]
+test('批次按最高层计价（6 楼和 7 楼同段，按 7 楼算）', function () {
+  const orders = [mkOrder('f1', { floor: 6 }), mkOrder('f2', { floor: 7 })]
   const r = batcher.buildBatches(orders)
+  assert.strictEqual(r.batches.length, 1)
   assert.strictEqual(r.batches[0].maxFloor, 7)
   assert.strictEqual(r.batches[0].ceiling, 1.9)
+})
+
+test('2 楼和 7 楼不在同一段 → 分开成批，避免上下折返', function () {
+  const orders = [mkOrder('g1', { floor: 2 }), mkOrder('g2', { floor: 7 })]
+  const r = batcher.buildBatches(orders)
+  assert.strictEqual(r.batches.length, 0, '两批各只有 1 单，都不够 2 单')
+  assert.strictEqual(r.leftover.length, 2)
+})
+
+test('同段内凑得齐 → 成批；跨段的凑不齐也不强行合并', function () {
+  // 3 单在 5 楼（中段），1 单在 7 楼（高段）
+  const orders = [mkOrder('h1', { floor: 5 }), mkOrder('h2', { floor: 5 }), mkOrder('h3', { floor: 5 }), mkOrder('h4', { floor: 7 })]
+  const r = batcher.buildBatches(orders)
+  assert.strictEqual(r.batches.length, 1)
+  assert.strictEqual(r.batches[0].floorBand, 'mid')
+  assert.strictEqual(r.batches[0].orderCount, 3)
+  assert.strictEqual(r.leftover.length, 1)
+})
+
+test('最高几层合成一段：6 层以上都进 high 段', function () {
+  const orders = [mkOrder('k1', { floor: 6 }), mkOrder('k2', { floor: 7 }), mkOrder('k3', { floor: 8 })]
+  const r = batcher.buildBatches(orders)
+  assert.strictEqual(r.batches.length, 1)
+  assert.strictEqual(r.batches[0].floorBand, 'high')
+  assert.strictEqual(r.batches[0].orderCount, 3)
 })
 
 // ---------- 跨楼凑批 ----------
@@ -201,6 +227,48 @@ test('开启跨楼凑批：两栋各 1 单 → 合成 1 批并标记', function 
   assert.strictEqual(r.batches.length, 1)
   assert.strictEqual(r.batches[0].crossBuilding, true)
   assert.strictEqual(r.batches[0].buildingId, 'B3+B5')
+})
+
+// ---------- 学生自选楼栋组合 ----------
+
+test('学生选 3栋+5栋 → 同段批次合并成一批', function () {
+  const orders = seq('m', 2).concat(seq('n', 2, { buildingId: 'B5' }))
+  const built = batcher.buildBatches(orders)
+  assert.strictEqual(built.batches.length, 2)
+
+  const r = batcher.combineForBuildings(built.batches, ['B3', 'B5'])
+  assert.strictEqual(r.combined.length, 1)
+  assert.strictEqual(r.combined[0].orderCount, 4)
+  assert.deepStrictEqual(r.combined[0].buildingIds, ['B3', 'B5'])
+  assert.strictEqual(r.combined[0].crossBuilding, true)
+})
+
+test('合并后超过 6 单 → 不合并，保持两批', function () {
+  const orders = seq('m', 4).concat(seq('n', 4, { buildingId: 'B5' }))
+  const built = batcher.buildBatches(orders)
+  const r = batcher.combineForBuildings(built.batches, ['B3', 'B5'])
+  assert.strictEqual(r.combined.length, 2)
+  assert.strictEqual(r.combined[0].crossBuilding, undefined)
+})
+
+test('没选中的楼栋不参与合并，进 rest', function () {
+  const orders = seq('m', 2).concat(seq('n', 2, { buildingId: 'B5' })).concat(seq('o', 2, { buildingId: 'B7' }))
+  const built = batcher.buildBatches(orders)
+  const r = batcher.combineForBuildings(built.batches, ['B3'])
+  assert.strictEqual(r.combined.length, 1, '只有 3 栋的被选中')
+  assert.strictEqual(r.combined[0].buildingId, 'B3')
+  assert.strictEqual(r.rest.length, 2, '5栋和7栋应进 rest')
+})
+
+test('合并后封顶价按合并批的最高层重算', function () {
+  const orders = [
+    mkOrder('m1', { floor: 2 }), mkOrder('m2', { floor: 2 }),
+    mkOrder('n1', { floor: 7, buildingId: 'B5' }), mkOrder('n2', { floor: 7, buildingId: 'B5' }),
+  ]
+  const built = batcher.buildBatches(orders)
+  const r = batcher.combineForBuildings(built.batches, ['B3', 'B5'])
+  // 2 楼在 low 段、7 楼在 high 段，不同段不会被合并
+  assert.ok(r.combined.length >= 2)
 })
 
 // ---------- 汇总 ----------

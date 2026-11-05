@@ -26,6 +26,13 @@ const RULES = {
     { from: 6, bonus: 0.3 },
     { from: 4, bonus: 0.15 },
   ],
+  // 楼层段：一批只服务一个段，骑手一趟爬完，不用上下折返。
+  // 最高那几层合成一段是刻意的——高层单量少，散开永远凑不齐。
+  floorBands: [
+    { id: 'low', label: '1-3 层', from: 1, to: 3 },
+    { id: 'mid', label: '4-5 层', from: 4, to: 5 },
+    { id: 'high', label: '6 层以上', from: 6, to: 99 },
+  ],
 }
 
 function round2(n) {
@@ -44,8 +51,21 @@ function receiverKey(o) {
   return o.receiverPhone || o.receiverName || 'anon:' + o.id
 }
 
-function groupKey(o) {
-  return [o.canteenId, o.buildingId, o.waveId].join('|')
+function floorBandOf(floor, rules) {
+  const cfg = rules || RULES
+  const f = Number(floor) || 1
+  for (let i = 0; i < cfg.floorBands.length; i++) {
+    const band = cfg.floorBands[i]
+    if (f >= band.from && f <= band.to) return band
+  }
+  // 超出台阶定义（比如 100 层）按最高段处理，不丢单
+  return cfg.floorBands[cfg.floorBands.length - 1]
+}
+
+/** 批次键：食堂 × 楼栋 × 波次 × 楼层段 */
+function groupKey(o, rules) {
+  const band = floorBandOf(floorOf(o), rules)
+  return [o.canteenId, o.buildingId, o.waveId, band.id].join('|')
 }
 
 /** 楼层加价：取命中的最高档 */
@@ -90,7 +110,9 @@ function newBatch(block, meta) {
   return {
     canteenId: meta.canteenId,
     buildingId: meta.buildingId,
+    buildingIds: [meta.buildingId],
     waveId: meta.waveId,
+    floorBand: meta.floorBand,
     orders: block.orders.map(function (o) { return o.id }),
     orderCount: block.count,
     volume: block.volume,
@@ -134,14 +156,14 @@ function buildBatches(orders, options) {
       leftover.push({ orderId: o.id, reason: 'missing_fields' })
       return
     }
-    const k = groupKey(o)
+    const k = groupKey(o, cfg)
     if (!groups.has(k)) groups.set(k, [])
     groups.get(k).push(o)
   })
 
   groups.forEach(function (groupOrders, key) {
     const parts = key.split('|')
-    const m = { canteenId: parts[0], buildingId: parts[1], waveId: parts[2] }
+    const m = { canteenId: parts[0], buildingId: parts[1], waveId: parts[2], floorBand: parts[3] }
 
     const blocks = buildBlocks(groupOrders)
     const usable = []
@@ -196,7 +218,8 @@ function buildBatches(orders, options) {
         stillLeft.push(l)
         return
       }
-      const k = [o.canteenId, o.waveId].join('|')
+      const band = floorBandOf(floorOf(o), cfg)
+      const k = [o.canteenId, o.waveId, band.id].join('|')
       if (!byCanteenWave.has(k)) byCanteenWave.set(k, [])
       byCanteenWave.get(k).push(o)
     })
@@ -208,10 +231,13 @@ function buildBatches(orders, options) {
       }
       const buildings = {}
       list.forEach(function (o) { buildings[o.buildingId] = true })
+      const band = floorBandOf(floorOf(list[0]), cfg)
       const b = {
         canteenId: list[0].canteenId,
         buildingId: Object.keys(buildings).join('+'),
+        buildingIds: Object.keys(buildings),
         waveId: list[0].waveId,
+        floorBand: band.id,
         orders: list.map(function (o) { return o.id }),
         orderCount: list.length,
         volume: list.reduce(function (s, o) { return s + volumeOf(o) }, 0),
@@ -231,8 +257,8 @@ function buildBatches(orders, options) {
 
   // 3. 稳定排序，保证同输入同输出
   batches.sort(function (a, b) {
-    const ka = [a.canteenId, a.buildingId, a.waveId, a.orders[0]].join('|')
-    const kb = [b.canteenId, b.buildingId, b.waveId, b.orders[0]].join('|')
+    const ka = [a.canteenId, a.buildingId, a.waveId, a.floorBand, a.orders[0]].join('|')
+    const kb = [b.canteenId, b.buildingId, b.waveId, b.floorBand, b.orders[0]].join('|')
     return ka.localeCompare(kb)
   })
 
@@ -251,8 +277,70 @@ function buildBatches(orders, options) {
   }
 }
 
+/**
+ * 学生自己选楼栋组合：把他在覆盖范围内、同食堂同波次同楼层段的单批合成一批。
+ *
+ * 为什么要学生自己选：他住 3 栋，但愿意顺路送 5 栋——多接几单多赚点。
+ * 系统不替他决定，只保证"合并后装得下"。
+ *
+ * @param {Array} batches 单楼栋批次
+ * @param {Array} buildingIds 学生选择的楼栋
+ * @returns {{combined:Array, rest:Array}}
+ */
+function combineForBuildings(batches, buildingIds, rules) {
+  const cfg = Object.assign({}, RULES, rules || {})
+  const cover = {}
+  ;(buildingIds || []).forEach(function (b) { cover[b] = true })
+
+  const groups = new Map()
+  const rest = []
+
+  ;(batches || []).forEach(function (b) {
+    if (!cover[b.buildingId]) {
+      rest.push(b)
+      return
+    }
+    const k = [b.canteenId, b.waveId, b.floorBand].join('|')
+    if (!groups.has(k)) groups.set(k, [])
+    groups.get(k).push(b)
+  })
+
+  const combined = []
+  groups.forEach(function (list) {
+    // 装不下就按原样返回，绝不硬合
+    const totalOrders = list.reduce(function (s, b) { return s + b.orderCount }, 0)
+    const totalVolume = list.reduce(function (s, b) { return s + b.volume }, 0)
+
+    if (list.length === 1) {
+      combined.push(list[0])
+      return
+    }
+    if (totalOrders > cfg.maxOrders || totalVolume > cfg.maxVolumeUnits) {
+      list.forEach(function (b) { combined.push(b) })
+      return
+    }
+
+    const merged = Object.assign({}, list[0], {
+      buildingId: list.map(function (b) { return b.buildingId }).sort().join('+'),
+      buildingIds: list.map(function (b) { return b.buildingId }).sort(),
+      orders: list.reduce(function (acc, b) { return acc.concat(b.orders) }, []),
+      orderCount: totalOrders,
+      volume: totalVolume,
+      minFloor: Math.min.apply(null, list.map(function (b) { return b.minFloor })),
+      maxFloor: Math.max.apply(null, list.map(function (b) { return b.maxFloor })),
+      crossBuilding: true,
+    })
+    merged.ceiling = ceilingOf(merged, cfg)
+    combined.push(merged)
+  })
+
+  return { combined: combined, rest: rest }
+}
+
 module.exports = {
   RULES: RULES,
+  floorBandOf: floorBandOf,
+  combineForBuildings: combineForBuildings,
   groupKey: groupKey,
   floorBonusOf: floorBonusOf,
   ceilingOf: ceilingOf,

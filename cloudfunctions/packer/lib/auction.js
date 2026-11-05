@@ -35,6 +35,20 @@ function batchKey(b) {
 }
 
 /**
+ * 他选的楼栋能不能覆盖这一批。
+ * 学生注册时选「主楼 + 可顺路送的邻楼」，只有覆盖到才能抢——
+ * 否则会出现"抢了 20 栋的单，结果找不到楼"。
+ */
+function canServe(student, batch) {
+  if (!batch) return false
+  const need = batch.buildingIds || (batch.buildingId ? [batch.buildingId] : [])
+  const cover = student.coverageBuildings ||
+    (student.buildingId ? [student.buildingId] : [])
+  if (!cover.length) return false
+  return need.every(function (b) { return cover.indexOf(b) >= 0 })
+}
+
+/**
  * 这个学生现在能不能出价
  * @returns {{ok:boolean, reason?:string}}
  */
@@ -60,6 +74,7 @@ function canBid(student, batch, now, rules) {
 
   if (!batch) return { ok: false, reason: 'no_batch' }
   if (batch.status !== 'BIDDING') return { ok: false, reason: 'not_bidding' }
+  if (!canServe(student, batch)) return { ok: false, reason: 'building_not_covered' }
   if (batch.bidDeadline && ts > batch.bidDeadline) return { ok: false, reason: 'expired' }
 
   const count = batch.orderCount || (batch.orders || []).length
@@ -149,6 +164,7 @@ module.exports = {
   RULES: RULES,
   batchKey: batchKey,
   canBid: canBid,
+  canServe: canServe,
   validatePrice: validatePrice,
   rankBids: rankBids,
   awardBatch: awardBatch,

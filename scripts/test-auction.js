@@ -31,6 +31,7 @@ function mkStudent(o) {
     status: 'active',
     credit: 100,
     batchesToday: 0,
+    buildingId: 'B3',
   }, o || {})
 }
 
@@ -104,6 +105,24 @@ test('已过竞价截止时间不能再出价', function () {
 test('批次太小（少于 2 单）不出价', function () {
   const r = auction.canBid(mkStudent(), mkBatch({ orderCount: 1 }), NOW)
   assert.strictEqual(r.reason, 'batch_too_small')
+})
+
+test('楼栋不在覆盖范围 → 不能抢', function () {
+  const batch = mkBatch({ buildingIds: ['B3', 'B5'] })
+  const r = auction.canBid(mkStudent({ coverageBuildings: ['B3'] }), batch, NOW)
+  assert.strictEqual(r.ok, false)
+  assert.strictEqual(r.reason, 'building_not_covered')
+})
+
+test('楼栋在覆盖范围 → 可以抢', function () {
+  const batch = mkBatch({ buildingIds: ['B3', 'B5'] })
+  const r = auction.canBid(mkStudent({ coverageBuildings: ['B3', 'B5'] }), batch, NOW)
+  assert.strictEqual(r.ok, true)
+})
+
+test('没填覆盖楼栋时，按主楼兜底', function () {
+  assert.strictEqual(auction.canServe(mkStudent(), mkBatch()), true)
+  assert.strictEqual(auction.canServe(mkStudent(), mkBatch({ buildingId: 'B9' })), false)
 })
 
 // ---------- 价格 ----------
