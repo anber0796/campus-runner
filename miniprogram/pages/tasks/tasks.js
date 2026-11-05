@@ -9,6 +9,12 @@ function leftText(deadline) {
   return min < 1 ? '即将截止' : '剩 ' + min + ' 分'
 }
 
+function fmtTime(ts) {
+  const d = new Date(ts)
+  return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
+    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
 function remainTextOf(b) {
   if (!b) return ''
   if (b.status === 'DELIVERED') {
@@ -26,17 +32,10 @@ function remainTextOf(b) {
 function remainLevelOf(b) {
   if (!b) return ''
   if (b.status === 'DELIVERED') {
-    const txt = remainTextOf(b)
-    return txt.indexOf('超时') === 0 ? 'over' : 'ok'
+    return remainTextOf(b).indexOf('超时') === 0 ? 'over' : 'ok'
   }
   const t = fmt.tightest(b.orderList, Date.now())
   return t ? t.level : ''
-}
-
-function fmtTime(ts) {
-  const d = new Date(ts)
-  return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
-    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
 }
 
 const STATUS = {
@@ -44,6 +43,85 @@ const STATUS = {
   CLAIMED: { text: '待取餐', cls: 'tag tag-amber' },
   PICKED: { text: '待送达', cls: 'tag' },
   DELIVERED: { text: '已完成', cls: 'tag tag-green' },
+}
+
+/**
+ * 待取餐按「食堂 + 波次」合并：
+ * 骑手只去一次食堂，分批对他没有意义。同一食堂抢了好几批，就当成一趟活。
+ * 合并后重新按楼层梳理商家，动线才连贯。
+ */
+function mergeByCanteen(batches) {
+  const map = {}
+  ;(batches || []).forEach(function (b) {
+    const key = b.canteenId + '|' + b.waveId
+    if (!map[key]) {
+      map[key] = {
+        key: key,
+        canteenId: b.canteenId,
+        canteenName: b.canteenName,
+        waveId: b.waveId,
+        batches: [],
+      }
+    }
+    map[key].batches.push(b)
+  })
+
+  const groups = Object.keys(map).map(function (k) {
+    const g = map[k]
+    const orders = []
+    const buildings = []
+
+    g.batches.forEach(function (b) {
+      ;(b.orderList || []).forEach(function (o) {
+        orders.push(Object.assign({}, o, { batchId: b.id }))
+      })
+      const bt = (b.buildingIds || [b.buildingId]).join('+')
+      if (buildings.indexOf(bt) < 0) buildings.push(bt)
+    })
+
+    // 合并后重新按档口楼层梳理
+    const byFloor = {}
+    orders.forEach(function (o) {
+      const f = o.stallFloor || 1
+      if (!byFloor[f]) byFloor[f] = []
+      byFloor[f].push(o)
+    })
+    const stallLines = Object.keys(byFloor)
+      .map(Number)
+      .sort(function (a, b) { return a - b })
+      .map(function (f) {
+        const names = []
+        byFloor[f].forEach(function (o) {
+          if (o.stallName && names.indexOf(o.stallName) < 0) names.push(o.stallName)
+        })
+        return { floor: f, stallText: names.join('、'), count: byFloor[f].length }
+      })
+
+    const t = fmt.tightest(orders)
+    // 合并后的金额 = 各批单价 × 各批单数 之和
+    const earn = g.batches.reduce(function (sum, b) {
+      return sum + (Number(b.price) || 0) * (b.orderCount || 0)
+    }, 0)
+
+    return {
+      key: k,
+      canteenId: g.canteenId,
+      canteenName: g.canteenName,
+      waveId: g.waveId,
+      buildingTexts: buildings.join(' / '),
+      orderCount: orders.length,
+      orderText: orders.length + ' 单',
+      earnText: '¥' + (Math.round(earn * 100) / 100),
+      stallLines: stallLines,
+      stallMore: Math.max(0, stallLines.length - 3),
+      remainText: t ? t.text : '',
+      remainLevel: t ? t.level : '',
+      tightestMin: t ? t.min : 9999,
+      batchIds: g.batches.map(function (b) { return b.id }),
+    }
+  })
+
+  return groups.sort(function (a, b) { return a.tightestMin - b.tightestMin })
 }
 
 Page({
@@ -64,55 +142,17 @@ Page({
   },
 
   onShow() {
-    // 第一次进来给一段极简说明，看到过就不再打扰
     if (!wx.getStorageSync('onboarded')) {
       this.setData({ showGuide: true })
     }
     this.load()
     const that = this
     clearInterval(this._timer)
-    // 每 20 秒刷新一次倒计时；到点的重新拉一遍数据
     this._timer = setInterval(function () { that.tick() }, 20000)
   },
 
-  onHide() {
-    clearInterval(this._timer)
-  },
-
-  onUnload() {
-    clearInterval(this._timer)
-  },
-
-  tick() {
-    const remap = function (list) {
-      return (list || []).map(function (b) {
-        return Object.assign({}, b, {
-          remainText: remainTextOf(b),
-          remainLevel: remainLevelOf(b),
-        })
-      })
-    }
-
-    this.setData({
-      pick: remap(this.data.pick),
-      deliver: remap(this.data.deliver),
-    })
-
-    if (!this.data.pool.length) return
-    let expired = false
-    const pool = this.data.pool.map(function (b) {
-      const t = leftText(b.claimDeadline)
-      if (t === '已截止') expired = true
-      return Object.assign({}, b, {
-        leftText: t,
-        urgent: t === '即将截止' || t === '已截止',
-        remainText: remainTextOf(b),
-        remainLevel: remainLevelOf(b),
-      })
-    })
-    this.setData({ pool: pool })
-    if (expired) this.load()
-  },
+  onHide() { clearInterval(this._timer) },
+  onUnload() { clearInterval(this._timer) },
 
   onPullDownRefresh() {
     this.load()
@@ -129,34 +169,13 @@ Page({
         const mine = res[1] || {}
         const active = mine.active || []
 
-        const decorate = function (b) {
+        const decorateBatch = function (b) {
           const st = STATUS[b.status] || { text: b.status, cls: 'tag tag-gray' }
-
-          // 待取餐：把商户按楼层折叠成几行，不用点进去才看得到
-          const stallLines = []
-          if (b.status === 'ASSIGNED' || b.status === 'CLAIMED') {
-            const map = {}
-            ;(b.orderList || []).forEach(function (o) {
-              const f = o.stallFloor || 1
-              if (!map[f]) map[f] = []
-              map[f].push(o)
-            })
-            Object.keys(map).map(Number).sort(function (x, y) { return x - y }).forEach(function (f) {
-              const names = []
-              map[f].forEach(function (o) {
-                if (o.stallName && names.indexOf(o.stallName) < 0) names.push(o.stallName)
-              })
-              stallLines.push({ floor: f, stallText: names.join('、'), count: map[f].length })
-            })
-          }
-
           return Object.assign({}, b, {
-            earn: b.earn || 0,
-            orderCount: b.orderCount || 0,
-            stallLines: stallLines,
-            stallMore: Math.max(0, stallLines.length - 3),
             statusText: st.text,
             statusClass: st.cls,
+            earn: b.earn || 0,
+            orderCount: b.orderCount || 0,
             earnText: '¥' + (b.earn || 0),
             priceText: b.price ? '¥' + b.price + '/单' : '',
             buildingText: (b.buildingIds || [b.buildingId]).join(' + '),
@@ -175,17 +194,16 @@ Page({
           loading: false,
           student: home.student || null,
           canClaim: home.canClaim || null,
-          pool: (home.batches || []).map(decorate),
-          pick: active.filter(function (b) {
+          pool: (home.batches || []).map(decorateBatch),
+          pick: mergeByCanteen(active.filter(function (b) {
             return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
-          }).map(decorate),
-          deliver: active.filter(function (b) { return b.status === 'PICKED' }).map(decorate),
-          done: (mine.finished || []).map(decorate),
+          })),
+          deliver: active.filter(function (b) { return b.status === 'PICKED' }).map(decorateBatch),
+          done: (mine.finished || []).map(decorateBatch),
         })
       })
       .catch(function (e) {
         if (e.code === 403) {
-          // 没认证：不给看列表，直接引导去认证
           that.setData({ loading: false, needCert: true, error: '' })
           return
         }
@@ -197,9 +215,34 @@ Page({
       })
   },
 
-  retry() {
-    this.load()
+  tick() {
+    const remap = function (list) {
+      return (list || []).map(function (b) {
+        return Object.assign({}, b, {
+          remainText: remainTextOf(b),
+          remainLevel: remainLevelOf(b),
+        })
+      })
+    }
+    this.setData({ deliver: remap(this.data.deliver) })
+
+    if (!this.data.pool.length) return
+    let expired = false
+    const pool = this.data.pool.map(function (b) {
+      const t = leftText(b.claimDeadline)
+      if (t === '已截止') expired = true
+      return Object.assign({}, b, {
+        leftText: t,
+        urgent: t === '即将截止' || t === '已截止',
+        remainText: remainTextOf(b),
+        remainLevel: remainLevelOf(b),
+      })
+    })
+    this.setData({ pool: pool })
+    if (expired) this.load()
   },
+
+  retry() { this.load() },
 
   dismissGuide() {
     wx.setStorageSync('onboarded', 1)
@@ -222,7 +265,7 @@ Page({
 
     wx.showModal({
       title: '抢这一批？',
-      content: target.buildingText + ' · ' + target.orderText + ' · 到手 ' + target.earnText,
+      content: target.canteenName + ' → ' + target.buildingText + ' · ' + target.orderText + ' · 到手 ' + target.earnText,
       confirmText: '抢',
       success: function (res) {
         if (!res.confirm) return
@@ -238,7 +281,6 @@ Page({
             that.setData({ busy: false })
             that.load()
 
-            // 被抢走是最常见的失败，光提示"手慢了"没意义，得给下一步
             const taken = err.code === 409 || String(err.message || '').indexOf('手慢') >= 0
             if (taken) {
               wx.showModal({
@@ -246,9 +288,7 @@ Page({
                 content: '别人比你快一步。要不要看看其他批次？',
                 confirmText: '看别的',
                 cancelText: '知道了',
-                success: function (r) {
-                  if (r.confirm) that.setData({ tab: 'pool' })
-                },
+                success: function (r) { if (r.confirm) that.setData({ tab: 'pool' }) },
               })
               return
             }
@@ -258,13 +298,16 @@ Page({
     })
   },
 
+  // 待取餐：按食堂合并后进取餐页
   goPickup(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/pickup/pickup?id=' + id })
+    const g = this.data.pick[e.currentTarget.dataset.index]
+    if (!g) return
+    wx.navigateTo({
+      url: '/pages/pickup/pickup?canteen=' + g.canteenId + '&wave=' + g.waveId,
+    })
   },
 
-  goDeliver(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/delivery/delivery?id=' + id })
+  goDeliver() {
+    wx.navigateTo({ url: '/pages/delivery/delivery' })
   },
 })

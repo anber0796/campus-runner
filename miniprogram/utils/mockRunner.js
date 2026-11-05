@@ -108,6 +108,13 @@ const state = {
       pickedAt: now - 10 * MINUTE,
     },
     {
+      id: 'P7', status: 'ASSIGNED', canteenName: '一食堂', walkMinutes: 7,
+      buildingId: '5栋', buildingIds: ['5栋'],
+      floorBand: 'high', minFloor: 6, maxFloor: 7, waveId: 'W2',
+      price: 1.7, orders: mkOrders(['7001', '7002'], 6), orderCount: 2,
+      assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 10 * MINUTE,
+    },
+    {
       id: 'P2', status: 'ASSIGNED', canteenName: '一食堂', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
       floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: true,
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,

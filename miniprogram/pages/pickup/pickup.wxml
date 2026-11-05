@@ -2,39 +2,28 @@
 
   <view class="error-card" wx:if="{{error}}">{{error}}</view>
 
-  <!-- 没有待取餐的批次 -->
-  <view class="empty" wx:if="{{!batches.length && !loading}}">
-    手上没有待取餐的批次{{'\n'}}去「可抢单」抢一单，或等运营指派
+  <view class="empty" wx:if="{{!orderCount && !loading}}">
+    没有待取餐的单{{'\n'}}去「可抢单」抢一单，或等运营指派
   </view>
 
-  <!-- 多批次切换 -->
-  <view class="tabs" wx:if="{{batches.length > 1}}">
-    <view wx:for="{{batches}}" wx:key="id"
-          class="tab {{current && current.id === item.id ? 'active' : ''}}"
-          bindtap="selectBatch" data-id="{{item.id}}">
-      {{item.canteenName}} · {{item.orderCount}}单
-    </view>
-  </view>
-
-  <block wx:if="{{current}}">
+  <block wx:if="{{orderCount}}">
     <view class="card head-card">
       <view class="row-between">
         <view>
-          <view class="title">{{current.canteenName}}</view>
-          <view class="muted mt8">{{current.orderCount}} 单 · 取齐后去送达</view>
+          <view class="title">{{canteenName}}</view>
+          <view class="muted mt8">
+            {{orderCount}} 单{{batchCount > 1 ? ' · 已合并 ' + batchCount + ' 批' : ''}}
+          </view>
         </view>
-        <view class="earn">¥{{current.earn}}</view>
       </view>
     </view>
 
-    <!-- 取餐：全部取齐后整块隐藏 -->
     <view class="card" wx:if="{{!allPicked}}">
       <view class="row-between">
         <view class="title">找商家取餐</view>
         <view class="scan-btn" bindtap="scan">扫码</view>
       </view>
 
-      <!-- 下一站：把"我现在该去哪"直接写在屏幕上 -->
       <view class="next-stop" wx:if="{{nextStop}}">
         <view class="next-left">
           <view class="next-label">下一站</view>
@@ -46,7 +35,6 @@
         </view>
       </view>
 
-      <!-- 按楼层分组 -->
       <view class="floor-block" wx:for="{{groups}}" wx:key="floor" wx:for-item="g">
         <view class="floor-head">
           <view class="floor-left">
@@ -61,13 +49,13 @@
           <text class="o-remain {{o.remainLevel}}" wx:if="{{o.remainText}}">{{o.remainText}}</text>
           <view class="tail-box">{{o.tail}}</view>
 
-          <view wx:if="{{undoId === o.id}}" class="undo-btn" bindtap="undoPick" data-id="{{o.id}}">撤销</view>
+          <view wx:if="{{undoId === o.undoKey}}" class="undo-btn" bindtap="undoPick" data-key="{{o.undoKey}}">撤销</view>
           <view wx:elif="{{o.picked}}" class="state picked">已取</view>
-          <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder" data-id="{{o.id}}">取餐</view>
+          <view wx:else class="pick-order-btn {{busy ? 'disabled' : ''}}" bindtap="pickOrder"
+                data-id="{{o.id}}" data-batch="{{o.batchId}}">取餐</view>
         </view>
       </view>
 
-      <!-- 扫码/手输兜底 -->
       <view class="divider"></view>
       <view class="manual-row">
         <input class="manual-input" placeholder="运单号（后 4 位也行）" placeholder-class="ph"
@@ -76,17 +64,14 @@
       </view>
     </view>
 
-    <!-- 取齐后：这里不再显示送达，只给一个入口 -->
     <view class="card done-card" wx:else>
-      <view class="done-title">已取齐 {{current.orderCount}} 单</view>
-      <view class="muted mt8">送去 {{current.buildingIds ? current.buildingIds.join(' + ') : current.buildingId}} · {{current.floorRange}}</view>
-      <view class="done-tip">送达在单独的页面做，逐单拍照</view>
+      <view class="done-title">已取齐 {{orderCount}} 单</view>
+      <view class="muted mt8">{{batchCount}} 批都取完了，去送达</view>
     </view>
   </block>
 
-  <view class="empty" wx:elif="{{loading}}">加载中…</view>
+  <view class="empty" wx:if="{{loading}}">加载中…</view>
 
-  <!-- 底部固定主按钮 -->
   <view class="bottom-bar" wx:if="{{primary}}">
     <view class="bottom-info">
       <view class="bottom-label">{{primary.label}}</view>

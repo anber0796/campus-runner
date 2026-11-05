@@ -75,14 +75,14 @@
 
   <!-- ============ 待取餐：食堂 + 商户（卡片内折叠） ============ -->
   <block wx:elif="{{tab === 'pick'}}">
-    <view class="task" wx:for="{{pick}}" wx:key="id">
+    <view class="task" wx:for="{{pick}}" wx:key="key">
       <view class="task-head">
         <view>
           <view class="task-title">{{item.canteenName}}</view>
-          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+          <view class="task-sub">送至 {{item.buildingTexts}}</view>
         </view>
         <view class="head-right">
-          <view class="{{item.statusClass}}">{{item.statusText}}</view>
+          <view class="tag tag-amber">待取餐</view>
           <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
         </view>
       </view>
@@ -97,8 +97,11 @@
       </view>
 
       <view class="task-foot">
-        <view class="muted">{{item.orderText}} · 到手 {{item.earnText}}</view>
-        <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去取餐</view>
+        <view class="muted">
+          {{item.orderText}} · {{item.earnText}}
+          <text wx:if="{{item.batchIds.length > 1}}"> · 已合并 {{item.batchIds.length}} 批</text>
+        </view>
+        <view class="go-btn" bindtap="goPickup" data-index="{{index}}">去取餐</view>
       </view>
     </view>
 

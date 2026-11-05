@@ -3,8 +3,7 @@ const fmt = require('../../utils/format')
 
 /**
  * 按「档口在食堂的几楼」分组，楼层从低到高。
- * 目的是让骑手一层一层往上取，不用上上下下折返——
- * 食堂里最费时间的不是排队，是来回跑。
+ * 同一食堂的多批会先合并再分组，所以动线是整栋食堂一起走的。
  */
 function groupByStallFloor(orders) {
   const map = {}
@@ -30,12 +29,10 @@ function groupByStallFloor(orders) {
       })
       return {
         floor: f,
-        label: f + ' 楼',
         count: list.length,
         stallCount: stalls.length,
         pickedCount: list.filter(function (o) { return o.picked }).length,
         allDone: list.every(function (o) { return o.picked }),
-        stallText: stalls.join('、'),
         orders: list,
       }
     })
@@ -45,9 +42,9 @@ Page({
   data: {
     loading: true,
     error: '',
-    batches: [],
-    current: null,
-    orders: [],
+    canteenName: '',
+    orderCount: 0,
+    batchCount: 0,
     groups: [],
     nextStop: null,
     allPicked: false,
@@ -58,12 +55,14 @@ Page({
   },
 
   onLoad(query) {
-    this.wantId = (query && query.id) || ''
+    this.filter = {
+      canteen: (query && query.canteen) || '',
+      wave: (query && query.wave) || '',
+      id: (query && query.id) || '',
+    }
   },
 
-  onShow() {
-    this.load()
-  },
+  onShow() { this.load() },
 
   onPullDownRefresh() {
     this.load()
@@ -73,54 +72,60 @@ Page({
   load() {
     const that = this
     this.setData({ loading: true, error: '' })
+
     riderApi
       .myBatches()
       .then(function (d) {
-        // 取餐页只处理"还没取齐"的批次；取齐的直接去送达页
         const active = (d.active || []).filter(function (b) {
           return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
         })
-        that.setData({ loading: false, batches: active })
-        if (!active.length) {
-          that.setData({ current: null, groups: [], nextStop: null, primary: null, allPicked: false })
+
+        const matched = active.filter(function (b) {
+          if (that.filter.id) return b.id === that.filter.id
+          if (that.filter.canteen) {
+            return b.canteenId === that.filter.canteen && b.waveId === that.filter.wave
+          }
+          return true
+        })
+
+        if (!matched.length) {
+          that.setData({
+            loading: false, groups: [], nextStop: null, primary: null,
+            allPicked: false, orderCount: 0, batchCount: 0,
+          })
           return
         }
-        const want = that.wantId && active.filter(function (b) { return b.id === that.wantId })[0]
-        const target = want || that.data.current || active[0]
-        that.select(target.id)
-      })
-      .then(function () {
-        // 刚取完最后一件：这一批已经从"待取餐"消失，直接送他去送达页
-        if (that._jumpAfterPick) {
-          that._jumpAfterPick = false
-          wx.redirectTo({ url: '/pages/delivery/delivery?id=' + that._deliverId })
-        }
+
+        // 同一食堂的多批合并成一趟活，每单记住自己属于哪一批
+        const orders = []
+        matched.forEach(function (b) {
+          ;(b.orderList || []).forEach(function (o) {
+            orders.push(Object.assign({}, o, { batchId: b.id }))
+          })
+        })
+
+        that.build(orders, matched)
       })
       .catch(function (e) {
         that.setData({ loading: false, error: e.message || '加载失败' })
       })
   },
 
-  selectBatch(e) {
-    this.select(e.currentTarget.dataset.id)
-  },
-
-  select(id) {
-    const batch = this.data.batches.filter(function (b) { return b.id === id })[0]
-    if (!batch) return
-
+  build(rawOrders, batches) {
     const now = Date.now()
-    const orders = (batch.orderList || []).map(function (o) {
+    const orders = rawOrders.map(function (o) {
       const r = fmt.remain(o.dueAt, now)
       return Object.assign({}, o, {
         remainText: r ? r.text : '',
         remainLevel: r ? r.level : '',
+        // WXML 里没法拼字符串，预先算好撤销用的键
+        undoKey: o.id + '|' + o.batchId,
       })
     })
+
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
     const groups = groupByStallFloor(orders)
 
-    // 下一站：按楼层从低到高，第一个还没取的商家
     let nextStop = null
     for (let i = 0; i < groups.length && !nextStop; i++) {
       const g = groups[i]
@@ -143,18 +148,18 @@ Page({
       : { kind: 'pick', label: '扫码取餐', sub: '还剩 ' + remain + ' 单' }
 
     this.setData({
-      current: batch,
-      orders: orders,
-      allPicked: allPicked,
+      loading: false,
+      canteenName: (batches[0] && batches[0].canteenName) || '食堂',
+      orderCount: orders.length,
+      batchCount: batches.length,
       groups: groups,
       nextStop: nextStop,
+      allPicked: allPicked,
       primary: primary,
     })
   },
 
-  onInputNo(e) {
-    this.setData({ inputNo: e.detail.value })
-  },
+  onInputNo(e) { this.setData({ inputNo: e.detail.value }) },
 
   scan() {
     const that = this
@@ -170,44 +175,46 @@ Page({
     this.doPickup(this.data.inputNo)
   },
 
+  // 按运单号找单：合并后可能来自不同批次，得逐单定位
   doPickup(orderNo) {
     if (this.data.busy) return
     const no = String(orderNo || '').trim()
     if (!no) return wx.showToast({ title: '请输入运单号', icon: 'none' })
-    if (!this.data.current) return wx.showToast({ title: '先选一批', icon: 'none' })
 
-    const that = this
-    this.setData({ busy: true })
-    riderApi
-      .pickup(this.data.current.id, no)
-      .then(function () {
-        that.setData({ busy: false, inputNo: '' })
-        wx.showToast({ title: '已取餐', icon: 'success' })
-        that.load()
+    let hit = null
+    this.data.groups.forEach(function (g) {
+      g.orders.forEach(function (o) {
+        if (!o.picked && (o.tail === no || String(o.id) === no)) hit = o
       })
-      .catch(function (e) {
-        that.setData({ busy: false })
-        wx.showToast({ title: e.message || '取餐失败', icon: 'none' })
-      })
+    })
+    if (!hit) return wx.showToast({ title: '这批里没有这个运单号', icon: 'none' })
+
+    this.pick(hit)
   },
 
-  // 直接点「取餐」，不用扫码也不用输单号
   pickOrder(e) {
     if (this.data.busy) return
     const orderId = e.currentTarget.dataset.id
-    if (!this.data.current) return wx.showToast({ title: '先选一批', icon: 'none' })
+    const batchId = e.currentTarget.dataset.batch
 
+    let hit = null
+    this.data.groups.forEach(function (g) {
+      g.orders.forEach(function (o) {
+        if (o.id === orderId && o.batchId === batchId) hit = o
+      })
+    })
+    if (!hit) return
+    this.pick(hit)
+  },
+
+  pick(order) {
     const that = this
     this.setData({ busy: true })
     riderApi
-      .pickup(this.data.current.id, '', orderId)
-      .then(function (r) {
-        that.setData({ busy: false, undoId: orderId })
+      .pickup(order.batchId, '', order.id)
+      .then(function () {
+        that.setData({ busy: false, undoId: order.id + '|' + order.batchId, inputNo: '' })
         wx.showToast({ title: '已取餐', icon: 'success' })
-        if (r && r.allPicked) {
-          that._jumpAfterPick = true
-          that._deliverId = that.data.current.id
-        }
         that.load()
         clearTimeout(that._undoTimer)
         that._undoTimer = setTimeout(function () { that.setData({ undoId: '' }) }, 3000)
@@ -220,10 +227,12 @@ Page({
 
   undoPick(e) {
     const that = this
-    const orderId = e.currentTarget.dataset.id
+    const key = e.currentTarget.dataset.key || ''
+    const parts = key.split('|')
     clearTimeout(this._undoTimer)
+
     riderApi
-      .unpick(this.data.current.id, orderId)
+      .unpick(parts[1], parts[0])
       .then(function () {
         that.setData({ undoId: '' })
         wx.showToast({ title: '已撤销', icon: 'none' })
@@ -239,7 +248,7 @@ Page({
     if (!p || this.data.busy) return
     if (p.kind === 'pick') return this.scan()
     if (p.kind === 'go-deliver') {
-      wx.navigateTo({ url: '/pages/delivery/delivery?id=' + this.data.current.id })
+      wx.navigateTo({ url: '/pages/delivery/delivery' })
     }
   },
 })
