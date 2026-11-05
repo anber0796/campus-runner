@@ -28,7 +28,7 @@
     <!-- 取餐：全部取齐后整块隐藏 -->
     <view class="card" wx:if="{{!allPicked}}">
       <view class="row-between">
-        <view class="title">取餐动线</view>
+        <view class="title">找商家取餐</view>
         <view class="scan-btn" bindtap="scan">扫码</view>
       </view>
 
@@ -46,17 +46,14 @@
         <view class="floor-head">
           <view class="floor-left">
             <text class="floor-badge {{g.allDone ? 'done' : ''}}">{{g.floor}}F</text>
-            <text class="floor-stalls">{{g.stallText}}</text>
+            <text class="floor-stalls">{{g.stallCount}} 家 · {{g.count}} 单</text>
           </view>
           <text class="muted">{{g.pickedCount}}/{{g.count}}</text>
         </view>
 
-        <view class="order-row" wx:for="{{g.orders}}" wx:key="id" wx:for-item="o">
+        <view class="order-row {{o.picked ? 'row-done' : ''}}" wx:for="{{g.orders}}" wx:key="id" wx:for-item="o">
+          <view class="stall-name">{{o.stallName || '—'}}</view>
           <view class="tail-box">{{o.tail}}</view>
-          <view class="order-info">
-            <view class="order-stall">{{o.stallName || '—'}}</view>
-            <view class="muted">送 {{o.room}} · {{o.floor}} 层</view>
-          </view>
 
           <view wx:if="{{o.delivered}}" class="state done">已送达</view>
           <view wx:elif="{{o.picked}}" class="state picked">已取</view>

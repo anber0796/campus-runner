@@ -17,7 +17,13 @@ function groupByStallFloor(orders) {
     .map(Number)
     .sort(function (a, b) { return a - b })
     .map(function (f) {
-      const list = map[f]
+      // 同一层内按商家名排序：同一家的单挨在一起，到了店门口一次取完
+      const list = map[f].slice().sort(function (a, b) {
+        const sa = String(a.stallName || '')
+        const sb = String(b.stallName || '')
+        if (sa !== sb) return sa.localeCompare(sb)
+        return String(a.tail).localeCompare(String(b.tail))
+      })
       const stalls = []
       list.forEach(function (o) {
         if (o.stallName && stalls.indexOf(o.stallName) < 0) stalls.push(o.stallName)
@@ -26,6 +32,7 @@ function groupByStallFloor(orders) {
         floor: f,
         label: f + ' 楼',
         count: list.length,
+        stallCount: stalls.length,
         pickedCount: list.filter(function (o) { return o.picked }).length,
         allDone: list.every(function (o) { return o.picked }),
         stallText: stalls.join('、'),

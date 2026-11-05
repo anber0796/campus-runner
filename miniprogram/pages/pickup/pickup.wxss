@@ -207,3 +207,18 @@
   font-size: 26rpx;
   color: #3d424a;
 }
+
+.stall-name {
+  flex: 1;
+  font-size: 29rpx;
+  font-weight: 500;
+  color: #1c1f26;
+}
+
+.order-row.row-done .stall-name {
+  color: #a9aeb5;
+}
+
+.tail-box {
+  margin-right: 18rpx;
+}
