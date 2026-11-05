@@ -75,9 +75,9 @@
       <text class="menu-label">健康证 / 保险</text>
       <text class="menu-value">{{student.healthExpire || '待上传'}}<text class="arrow">›</text></text>
     </view>
-    <view class="menu-item" bindtap="goGrab">
-      <text class="menu-label">抢单大厅</text>
-      <text class="menu-value">按批次抢<text class="arrow">›</text></text>
+    <view class="menu-item" bindtap="goTasks">
+      <text class="menu-label">我的任务</text>
+      <text class="menu-value">指派给我的单<text class="arrow">›</text></text>
     </view>
     <view class="menu-item" bindtap="goPickup">
       <text class="menu-label">取餐与送达</text>

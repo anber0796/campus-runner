@@ -11,6 +11,11 @@ Page({
     busy: false,
   },
 
+  onLoad(query) {
+    // 从「我的任务」点进来时带 id，直接定位到那一批
+    this.wantId = (query && query.id) || ''
+  },
+
   onShow() {
     this.load()
   },
@@ -23,7 +28,12 @@ Page({
       .then(function (d) {
         const active = d.active || []
         that.setData({ loading: false, batches: active })
-        // 只有一批就直接进去，省一次点击
+        // 带了 id 就定位；只有一批也直接进去，省一次点击
+        if (that.wantId && !that.data.current) {
+          const hit = active.filter(function (b) { return b.id === that.wantId })[0]
+          if (hit) that.select(hit.id)
+          return
+        }
         if (active.length === 1 && !that.data.current) that.select(active[0].id)
       })
       .catch(function (e) {
@@ -114,7 +124,5 @@ Page({
     })
   },
 
-  goGrab() {
-    wx.navigateTo({ url: '/pages/grab/grab' })
-  },
+
 })

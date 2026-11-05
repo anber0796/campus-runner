@@ -54,8 +54,8 @@ Page({
     wx.switchTab({ url: '/pages/order/order' })
   },
 
-  goGrab() {
-    wx.navigateTo({ url: '/pages/grab/grab' })
+  goTasks() {
+    wx.navigateTo({ url: '/pages/tasks/tasks' })
   },
 
   goPickup() {

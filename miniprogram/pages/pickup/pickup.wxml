@@ -4,9 +4,8 @@
 
   <!-- 没有进行中的批次 -->
   <view class="empty" wx:if="{{!batches.length && !loading}}">
-    手上还没有批次{{'\n'}}去抢单大厅看看
+    手上还没有批次{{'\n'}}等运营指派，或联系调度
   </view>
-  <button class="btn-primary mt16" wx:if="{{!batches.length && !loading}}" bindtap="goGrab">去抢单</button>
 
   <!-- 批次切换 -->
   <view class="tabs" wx:if="{{batches.length > 1}}">

@@ -42,6 +42,7 @@ function mkOrders(tails, floorBase) {
 const state = {
   token: 'mock-admin-token',
   student: {
+    openid: 'mock-openid',
     name: '张同学',
     credit: 96,
     claimsToday: 1,
@@ -68,10 +69,10 @@ const state = {
       claimDeadline: now + 12 * MINUTE,
     },
     {
-      id: 'P2', status: 'POOLED', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
+      id: 'P2', status: 'ASSIGNED', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
       floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: true,
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,
-      claimDeadline: now + 9 * MINUTE,
+      assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 5 * MINUTE,
     },
   ],
   logs: [
@@ -177,7 +178,8 @@ const handlers = {
 
   'rider.myBatches': function () {
     const mine = state.batches.filter(function (b) {
-      return b.status === 'CLAIMED' || b.status === 'PICKED' || b.status === 'DELIVERED'
+      return b.status === 'ASSIGNED' || b.status === 'CLAIMED' ||
+        b.status === 'PICKED' || b.status === 'DELIVERED'
     }).map(shapeBatch)
     return delay({
       active: mine.filter(function (b) { return b.status !== 'DELIVERED' }),
@@ -196,6 +198,7 @@ const handlers = {
 
     hit.picked = true
     if (b.orders.every(function (o) { return o.picked })) b.status = 'PICKED'
+    if (b.status === 'ASSIGNED') b.status = 'PICKED'
     return delay({ ok: true, allPicked: b.status === 'PICKED' })
   },
 

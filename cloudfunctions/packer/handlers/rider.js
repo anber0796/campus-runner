@@ -76,7 +76,11 @@ function shape(batch, withOrders) {
 }
 
 module.exports = {
-  /** 抢单大厅：我能抢的批次 */
+  /**
+   * 【暂时下线】抢单大厅：我能抢的批次
+   * 目前走 L2（运营指派），学生端只显示「我的任务」。
+   * 若将来拿到 L3 接口、改回学生自主抢单，这个接口和 grab 直接可用。
+   */
   'rider.home': async function (args) {
     const db = args.db
     const student = await getStudent(db, args.ctx.OPENID)
@@ -119,7 +123,7 @@ module.exports = {
   },
 
   /**
-   * 抢单。原子性靠条件更新：
+   * 【暂时下线】抢单。原子性靠条件更新：
    * 只有 status 仍是 POOLED 才能改成 CLAIMED，两个人同抢只有一个人 updated === 1。
    */
   'rider.grab': async function (args) {
@@ -165,11 +169,14 @@ module.exports = {
     return { ok: true, batch: shape(batch) }
   },
 
-  /** 我的批次 */
+  /** 我的批次：抢来的 + 被指派的，两种来源合并 */
   'rider.myBatches': async function (args) {
     const db = args.db
     const openid = args.ctx.OPENID
-    const list = await fetchAll(db.collection(BATCH).where({ claimedBy: openid }))
+    const _ = db.command
+    const list = await fetchAll(db.collection(BATCH).where(
+      _.or([{ claimedBy: openid }, { assignedOpenid: openid }])
+    ))
     const shaped = list.map(function (b) { return shape(b, true) })
     return {
       active: shaped.filter(function (b) { return b.status !== 'DELIVERED' }),

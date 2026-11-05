@@ -502,6 +502,8 @@ async function assignOne(args) {
     data: {
       status: 'ASSIGNED',
       assignedTo: event.studentId,
+      // 同时记 openid：指派（admin 用 _id）和抢单（用 openid）两种来源要能查到同一批
+      assignedOpenid: student.openid || event.studentId,
       assignedName: student.name || '',
       assignedAt: Date.now(),
       updatedAt: Date.now(),

@@ -9,8 +9,8 @@
     "pages/register/register",
     "pages/admin/login/login",
     "pages/admin/dashboard/dashboard",
-    "pages/grab/grab",
     "pages/invite/invite",
+    "pages/tasks/tasks",
     "pages/pickup/pickup",
     "pages/admin/post/post",
     "pages/admin/checklist/checklist"
