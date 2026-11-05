@@ -147,3 +147,60 @@
   color: #d93b3b;
   font-weight: 600;
 }
+
+/* 引导卡片 */
+.guide-card {
+  background: #eef7ff;
+  border-left: 8rpx solid #3b6ef6;
+  border-radius: 16rpx;
+  padding: 24rpx 26rpx;
+  margin-bottom: 24rpx;
+}
+
+.guide-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1c1f26;
+}
+
+.guide-text {
+  font-size: 24rpx;
+  color: #4a5058;
+  margin-top: 10rpx;
+  line-height: 1.7;
+}
+
+.guide-btn {
+  display: inline-block;
+  margin-top: 18rpx;
+  background: #3b6ef6;
+  color: #fff;
+  font-size: 25rpx;
+  padding: 0 32rpx;
+  line-height: 64rpx;
+  border-radius: 32rpx;
+}
+
+/* 错误卡片带重试 */
+.error-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.error-text {
+  flex: 1;
+  font-size: 25rpx;
+}
+
+.retry-btn {
+  margin-left: 20rpx;
+  background: #fff;
+  color: #d93b3b;
+  border: 1rpx solid #d93b3b;
+  font-size: 24rpx;
+  padding: 0 26rpx;
+  line-height: 60rpx;
+  border-radius: 30rpx;
+  flex-shrink: 0;
+}

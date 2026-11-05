@@ -33,9 +33,16 @@ Page({
     student: null,
     canClaim: null,
     busy: false,
+    needCert: false,
+    showGuide: false,
+    retryable: true,
   },
 
   onShow() {
+    // 第一次进来给一段极简说明，看到过就不再打扰
+    if (!wx.getStorageSync('onboarded')) {
+      this.setData({ showGuide: true })
+    }
     this.load()
     const that = this
     clearInterval(this._timer)
@@ -108,8 +115,30 @@ Page({
         })
       })
       .catch(function (e) {
-        that.setData({ loading: false, error: e.message || '加载失败' })
+        if (e.code === 403) {
+          // 没认证：不给看列表，直接引导去认证
+          that.setData({ loading: false, needCert: true, error: '' })
+          return
+        }
+        that.setData({
+          loading: false,
+          error: e.message || '加载失败',
+          retryable: e.code !== 'UNKNOWN',
+        })
       })
+  },
+
+  retry() {
+    this.load()
+  },
+
+  dismissGuide() {
+    wx.setStorageSync('onboarded', 1)
+    this.setData({ showGuide: false })
+  },
+
+  goRegister() {
+    wx.navigateTo({ url: '/pages/register/register' })
   },
 
   switchTab(e) {
@@ -138,8 +167,23 @@ Page({
           })
           .catch(function (err) {
             that.setData({ busy: false })
-            wx.showToast({ title: err.message || '手慢了', icon: 'none' })
             that.load()
+
+            // 被抢走是最常见的失败，光提示"手慢了"没意义，得给下一步
+            const taken = err.code === 409 || String(err.message || '').indexOf('手慢') >= 0
+            if (taken) {
+              wx.showModal({
+                title: '这一批被抢走了',
+                content: '别人比你快一步。要不要看看其他批次？',
+                confirmText: '看别的',
+                cancelText: '知道了',
+                success: function (r) {
+                  if (r.confirm) that.setData({ tab: 'pool' })
+                },
+              })
+              return
+            }
+            wx.showToast({ title: err.message || '没抢到', icon: 'none' })
           })
       },
     })

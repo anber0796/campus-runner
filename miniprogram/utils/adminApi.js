@@ -7,6 +7,7 @@
  */
 const config = require('./config')
 const mockRunner = require('./mockRunner')
+const net = require('./net')
 
 const TOKEN_KEY = 'admin_token'
 const NAME_KEY = 'admin_name'
@@ -53,6 +54,13 @@ function call(action, data) {
         throw err
       }
       return r.data
+    })
+    .catch(function (err) {
+      if (err && typeof err.code === 'number') throw err
+      const f = net.friendly(err)
+      const e = new Error(f.message)
+      e.code = f.retryable ? 'NETWORK' : 'UNKNOWN'
+      throw e
     })
 }
 

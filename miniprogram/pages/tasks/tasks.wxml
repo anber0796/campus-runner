@@ -1,6 +1,24 @@
 <view class="container">
 
-  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+  <!-- 没认证：直接引导 -->
+  <view class="guide-card" wx:if="{{needCert}}">
+    <view class="guide-title">先完成认证才能接单</view>
+    <view class="guide-text">实名 + 学生证 + 健康证，约 3 分钟</view>
+    <view class="guide-btn" bindtap="goRegister">去认证</view>
+  </view>
+
+  <!-- 报错：给重试 -->
+  <view class="error-card" wx:if="{{error}}">
+    <view class="error-text">{{error}}</view>
+    <view class="retry-btn" wx:if="{{retryable}}" bindtap="retry">重试</view>
+  </view>
+
+  <!-- 首次进入引导 -->
+  <view class="guide-card" wx:if="{{showGuide && tab === 'pool' && !needCert}}">
+    <view class="guide-title">第一次用？三步就上手</view>
+    <view class="guide-text">1. 抢一单 → 2. 去食堂按楼层取餐 → 3. 回宿舍拍照送达</view>
+    <view class="guide-btn" bindtap="dismissGuide">知道了</view>
+  </view>
 
   <view class="tabs3">
     <view class="tab3 {{tab === 'pool' ? 'active' : ''}}" bindtap="switchTab" data-tab="pool">

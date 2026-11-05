@@ -4,6 +4,7 @@
  */
 const config = require('./config')
 const mockRunner = require('./mockRunner')
+const net = require('./net')
 
 function call(action, data) {
   if (config.USE_MOCK) {
@@ -23,6 +24,15 @@ function call(action, data) {
         throw err
       }
       return r.data
+    })
+    .catch(function (err) {
+      // 已经是业务错误（带 code 的）原样抛，只翻译网络层的
+      if (err && typeof err.code === 'number') throw err
+      const f = net.friendly(err)
+      const e = new Error(f.message)
+      e.code = f.retryable ? 'NETWORK' : 'UNKNOWN'
+      e.raw = err
+      throw e
     })
 }
 
