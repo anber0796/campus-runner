@@ -35,24 +35,29 @@
     </view>
   </view>
 
-  <!-- 可抢单 -->
+  <!-- ============ 可抢单：取哪 + 送哪 + 剩多久 ============ -->
   <block wx:if="{{tab === 'pool'}}">
     <view class="card pool-tip" wx:if="{{student}}">
       {{student.name}} · 信用 {{student.credit}} · 今日已抢 {{student.claimsToday}} 批
     </view>
 
     <view class="task" wx:for="{{pool}}" wx:key="id">
-      <view class="task-head">
-        <view>
-          <view class="task-title">{{item.canteenName}}</view>
-          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
-        </view>
-        <view class="earn">{{item.earnText}}</view>
+      <view class="route-row">
+        <text class="route-tag pick">取</text>
+        <text class="route-main">{{item.canteenName}}</text>
+        <text class="earn">{{item.earnText}}</text>
       </view>
 
-      <view class="task-meta">
-        {{item.orderText}}<text class="dot">·</text>{{item.walkText}}
-        <text class="dot" wx:if="{{item.leftText}}">·</text>
+      <view class="route-row">
+        <text class="route-tag send">送</text>
+        <text class="route-main">{{item.buildingText}} · {{item.floorRange}}</text>
+      </view>
+
+      <view class="pool-meta">
+        <text>{{item.orderText}}</text>
+        <text class="dot">·</text>
+        <text>{{item.walkText}}</text>
+        <text class="dot">·</text>
         <text class="{{item.urgent ? 'urgent' : ''}}">{{item.leftText}}</text>
       </view>
 
@@ -67,7 +72,7 @@
     </view>
   </block>
 
-  <!-- 待取餐 -->
+  <!-- ============ 待取餐：食堂 + 商户（卡片内折叠） ============ -->
   <block wx:elif="{{tab === 'pick'}}">
     <view class="task" wx:for="{{pick}}" wx:key="id">
       <view class="task-head">
@@ -77,12 +82,18 @@
         </view>
         <view class="{{item.statusClass}}">{{item.statusText}}</view>
       </view>
-      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
-      <view class="tails">
-        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+
+      <view class="stall-list" wx:if="{{item.stallLines.length}}">
+        <view class="stall-line" wx:for="{{item.stallLines}}" wx:for-item="s" wx:key="floor">
+          <text class="floor-chip">{{s.floor}}F</text>
+          <text class="stall-names">{{s.stallText}}</text>
+          <text class="stall-count">{{s.count}} 单</text>
+        </view>
+        <view class="more-line" wx:if="{{item.stallMore}}">还有 {{item.stallMore}} 层，去取餐页看</view>
       </view>
+
       <view class="task-foot">
-        <view class="muted">到档口扫码或手输运单号</view>
+        <view class="muted">{{item.orderText}} · 到手 {{item.earnText}}</view>
         <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去取餐</view>
       </view>
     </view>
@@ -92,22 +103,19 @@
     </view>
   </block>
 
-  <!-- 待送达 -->
-  <block wx:else>
+  <!-- ============ 待送达：只显示送到哪栋哪层 ============ -->
+  <block wx:elif="{{tab === 'deliver'}}">
     <view class="task" wx:for="{{deliver}}" wx:key="id">
       <view class="task-head">
         <view>
-          <view class="task-title">{{item.canteenName}}</view>
-          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
+          <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+          <view class="task-sub">按楼层从上到下送</view>
         </view>
         <view class="{{item.statusClass}}">{{item.statusText}}</view>
       </view>
-      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
-      <view class="tails">
-        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
-      </view>
+
       <view class="task-foot">
-        <view class="muted">送到门口拍照留证</view>
+        <view class="muted">{{item.orderText}} · 到手 {{item.earnText}}</view>
         <view class="go-btn" bindtap="goPickup" data-id="{{item.id}}">去送达</view>
       </view>
     </view>
@@ -115,26 +123,23 @@
     <view class="empty" wx:if="{{!deliver.length && !loading}}">没有待送达的批次</view>
   </block>
 
-  <!-- 已完成 -->
-  <block wx:if="{{tab === 'done'}}">
+  <!-- ============ 已完成：楼栋 + 单量 + 金额 ============ -->
+  <block wx:else>
     <view class="task" wx:for="{{done}}" wx:key="id">
       <view class="task-head">
-        <view>
-          <view class="task-title">{{item.canteenName}}</view>
-          <view class="task-sub">送至 {{item.buildingText}} · {{item.floorRange}}</view>
-        </view>
+        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
         <view class="tag tag-green">已完成</view>
       </view>
-      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
-      <view class="muted mt8" wx:if="{{item.timeText}}">{{item.timeText}} 送达</view>
-      <view class="tails">
-        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+
+      <view class="done-meta">
+        <text class="done-orders">{{item.orderCount}} 单</text>
+        <text class="done-earn">{{item.earnText}}</text>
+        <text class="muted done-time" wx:if="{{item.timeText}}">{{item.timeText}}</text>
       </view>
     </view>
 
     <view class="empty" wx:if="{{!done.length && !loading}}">
-      还没有完成的单{{'
-'}}送完第一批就会出现在这里
+      还没有完成的单{{'\n'}}送完第一批就会出现在这里
     </view>
   </block>
 

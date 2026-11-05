@@ -87,7 +87,30 @@ Page({
 
         const decorate = function (b) {
           const st = STATUS[b.status] || { text: b.status, cls: 'tag tag-gray' }
+
+          // 待取餐：把商户按楼层折叠成几行，不用点进去才看得到
+          const stallLines = []
+          if (b.status === 'ASSIGNED' || b.status === 'CLAIMED') {
+            const map = {}
+            ;(b.orderList || []).forEach(function (o) {
+              const f = o.stallFloor || 1
+              if (!map[f]) map[f] = []
+              map[f].push(o)
+            })
+            Object.keys(map).map(Number).sort(function (x, y) { return x - y }).forEach(function (f) {
+              const names = []
+              map[f].forEach(function (o) {
+                if (o.stallName && names.indexOf(o.stallName) < 0) names.push(o.stallName)
+              })
+              stallLines.push({ floor: f, stallText: names.join('、'), count: map[f].length })
+            })
+          }
+
           return Object.assign({}, b, {
+            earn: b.earn || 0,
+            orderCount: b.orderCount || 0,
+            stallLines: stallLines,
+            stallMore: Math.max(0, stallLines.length - 3),
             statusText: st.text,
             statusClass: st.cls,
             earnText: '¥' + (b.earn || 0),
