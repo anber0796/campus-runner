@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/tasks/tasks",
     "pages/index/index",
     "pages/pack/pack",
     "pages/deliver/deliver",
@@ -10,7 +11,6 @@
     "pages/admin/login/login",
     "pages/admin/dashboard/dashboard",
     "pages/invite/invite",
-    "pages/tasks/tasks",
     "pages/pickup/pickup",
     "pages/admin/post/post",
     "pages/admin/checklist/checklist"
