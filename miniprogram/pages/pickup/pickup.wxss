@@ -106,14 +106,16 @@
 }
 
 .deliver-btn {
-  background: #fff;
-  color: #1f9d55;
-  border: 1rpx solid #1f9d55;
-  font-size: 25rpx;
-  padding: 0 28rpx;
-  line-height: 62rpx;
-  border-radius: 31rpx;
+  background: #1f9d55;
+  color: #fff;
+  font-size: 27rpx;
+  font-weight: 600;
+  padding: 0 40rpx;
+  line-height: 68rpx;
+  border-radius: 34rpx;
 }
+
+.deliver-btn.disabled { background: #c9cdd4; }
 
 .error-card {
   background: #fdecec;

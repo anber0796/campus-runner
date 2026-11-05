@@ -9,6 +9,7 @@ Page({
     orders: [],
     inputNo: '',
     busy: false,
+    allPicked: false,
   },
 
   onLoad(query) {
@@ -48,7 +49,10 @@ Page({
   select(id) {
     const batch = this.data.batches.filter(function (b) { return b.id === id })[0]
     if (!batch) return
-    this.setData({ current: batch, orders: batch.orderList || [] })
+    const orders = batch.orderList || []
+    // 全部取齐后，取餐板块整块隐藏，页面只剩「送达」
+    const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
+    this.setData({ current: batch, orders: orders, allPicked: allPicked })
   },
 
   onInputNo(e) {
@@ -126,7 +130,9 @@ Page({
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      sourceType: ['camera', 'album'],
+      // 直接进相机，省一次选择
+      sourceType: ['camera'],
+      camera: 'back',
       success: function (res) {
         const photo = res.tempFiles[0].tempFilePath
         that.setData({ busy: true })

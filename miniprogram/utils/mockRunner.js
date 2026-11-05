@@ -75,6 +75,13 @@ const state = {
       claimDeadline: now + 14 * MINUTE,
     },
     {
+      id: 'P5', status: 'DELIVERED', buildingId: '3栋', buildingIds: ['3栋'],
+      floorBand: 'low', minFloor: 2, maxFloor: 3, waveId: 'W2',
+      price: 1.15, orders: mkOrders(['9901', '9902', '9903'], 2), orderCount: 3,
+      assignedOpenid: 'mock-openid', assignedName: '张同学',
+      assignedAt: now - 3 * HOUR, deliveredAt: now - 2 * HOUR,
+    },
+    {
       id: 'P4', status: 'PICKED', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'high', minFloor: 6, maxFloor: 7, waveId: 'W2',
       price: 1.9, orders: mkOrders(['6601', '6602'], 6), orderCount: 2,
@@ -101,6 +108,9 @@ const state = {
 state.batches.forEach(function (b) {
   if (b.status === 'PICKED') {
     b.orders.forEach(function (o) { o.picked = true })
+  }
+  if (b.status === 'DELIVERED') {
+    b.orders.forEach(function (o) { o.picked = true; o.delivered = true })
   }
 })
 

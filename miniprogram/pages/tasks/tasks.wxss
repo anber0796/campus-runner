@@ -9,8 +9,8 @@
 .tab3 {
   flex: 1;
   text-align: center;
-  line-height: 72rpx;
-  font-size: 27rpx;
+  line-height: 68rpx;
+  font-size: 25rpx;
   color: #5b6068;
   border-radius: 12rpx;
   position: relative;
@@ -130,3 +130,5 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+.mt8 { margin-top: 8rpx; }

@@ -12,6 +12,9 @@
     <view class="tab3 {{tab === 'deliver' ? 'active' : ''}}" bindtap="switchTab" data-tab="deliver">
       待送达<text class="num" wx:if="{{deliver.length}}">{{deliver.length}}</text>
     </view>
+    <view class="tab3 {{tab === 'done' ? 'active' : ''}}" bindtap="switchTab" data-tab="done">
+      已完成<text class="num" wx:if="{{done.length}}">{{done.length}}</text>
+    </view>
   </view>
 
   <!-- 可抢单 -->
@@ -85,6 +88,26 @@
     </view>
 
     <view class="empty" wx:if="{{!deliver.length && !loading}}">没有待送达的批次</view>
+  </block>
+
+  <!-- 已完成 -->
+  <block wx:if="{{tab === 'done'}}">
+    <view class="task" wx:for="{{done}}" wx:key="id">
+      <view class="task-head">
+        <view class="task-title">{{item.buildingText}} · {{item.floorRange}}</view>
+        <view class="tag tag-green">已完成</view>
+      </view>
+      <view class="task-meta">{{item.orderText}}<text class="dot">·</text>到手 {{item.earnText}}</view>
+      <view class="muted mt8" wx:if="{{item.timeText}}">{{item.timeText}} 送达</view>
+      <view class="tails">
+        <text class="tail" wx:for="{{item.tails}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{!done.length && !loading}}">
+      还没有完成的单{{'
+'}}送完第一批就会出现在这里
+    </view>
   </block>
 
   <view class="empty" wx:if="{{loading}}">加载中…</view>

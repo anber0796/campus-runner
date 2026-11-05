@@ -25,8 +25,8 @@
       <view class="muted mt8">取齐后直接走，不用分拣</view>
     </view>
 
-    <!-- 取餐 -->
-    <view class="card">
+    <!-- 取餐：全部取齐后整块隐藏 -->
+    <view class="card" wx:if="{{!allPicked}}">
       <view class="row-between">
         <view class="title">取餐</view>
         <view class="scan-btn" bindtap="scan">扫码</view>
@@ -56,8 +56,13 @@
 
     <!-- 送达 -->
     <view class="card">
-      <view class="title">送达</view>
-      <view class="muted mt8">送到门口拍一张，人不在就挂门把手再拍</view>
+      <view class="row-between">
+        <view class="title">{{allPicked ? '送达' : '取齐后送达'}}</view>
+        <view class="tag tag-green" wx:if="{{allPicked}}">可以送</view>
+      </view>
+      <view class="muted mt8">
+        {{allPicked ? '点「送达」直接开相机，拍完即完成' : '还有餐没取，取齐后这里才能送'}}
+      </view>
 
       <view class="deliver-list">
         <view class="deliver-row" wx:for="{{orders}}" wx:key="id" wx:if="{{item.picked && !item.delivered}}">
@@ -65,7 +70,7 @@
             <text class="tail-inline">{{item.tail}}</text>
             <text class="muted">{{item.room}}</text>
           </view>
-          <view class="deliver-btn" bindtap="deliver" data-id="{{item.id}}">拍照送达</view>
+          <view class="deliver-btn {{busy ? 'disabled' : ''}}" bindtap="deliver" data-id="{{item.id}}">送达</view>
         </view>
         <view class="muted" wx:if="{{!orders.length}}">还没有订单</view>
       </view>

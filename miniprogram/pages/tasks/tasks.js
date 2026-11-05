@@ -1,9 +1,16 @@
 const riderApi = require('../../utils/riderApi')
 
+function fmtTime(ts) {
+  const d = new Date(ts)
+  return (d.getMonth() + 1) + '-' + d.getDate() + ' ' +
+    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
 const STATUS = {
   ASSIGNED: { text: '待取餐', cls: 'tag tag-amber' },
   CLAIMED: { text: '待取餐', cls: 'tag tag-amber' },
   PICKED: { text: '待送达', cls: 'tag' },
+  DELIVERED: { text: '已完成', cls: 'tag tag-green' },
 }
 
 Page({
@@ -14,6 +21,7 @@ Page({
     pool: [],
     pick: [],
     deliver: [],
+    done: [],
     student: null,
     canClaim: null,
     busy: false,
@@ -48,6 +56,7 @@ Page({
             buildingText: (b.buildingIds || [b.buildingId]).join(' + '),
             tailText: (b.tails || []).join(' / '),
             orderText: b.orderCount + ' 单',
+            timeText: b.deliveredAt ? fmtTime(b.deliveredAt) : '',
           })
         }
 
@@ -60,6 +69,7 @@ Page({
             return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
           }).map(decorate),
           deliver: active.filter(function (b) { return b.status === 'PICKED' }).map(decorate),
+          done: (mine.finished || []).map(decorate),
         })
       })
       .catch(function (e) {
