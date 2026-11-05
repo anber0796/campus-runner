@@ -29,12 +29,8 @@
     "borderStyle": "white",
     "list": [
       {
-        "pagePath": "pages/index/index",
-        "text": "顺路包"
-      },
-      {
-        "pagePath": "pages/order/order",
-        "text": "我的单"
+        "pagePath": "pages/tasks/tasks",
+        "text": "我的任务"
       },
       {
         "pagePath": "pages/wallet/wallet",
