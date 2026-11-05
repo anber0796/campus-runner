@@ -1,0 +1,68 @@
+<view class="container">
+
+  <view class="head">
+    <view class="head-title">发单</view>
+    <view class="muted">定价后才进抢单池，学生才看得到</view>
+  </view>
+
+  <view class="error-card" wx:if="{{error}}">{{error}}</view>
+
+  <view class="card summary" wx:if="{{summary}}">
+    <view class="row-between">
+      <view class="stat">
+        <view class="stat-num">{{summary.count}}</view>
+        <view class="stat-label">待发批次</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num">{{summary.totalOrders}}</view>
+        <view class="stat-label">订单数</view>
+      </view>
+      <view class="stat">
+        <view class="stat-num money">¥{{summary.totalCost}}</view>
+        <view class="stat-label">预计成本</view>
+      </view>
+    </view>
+    <view class="muted mt8">池子里共 {{summary.backlog}} 批在排队，积压越多建议价越高</view>
+  </view>
+
+  <button class="btn-primary mt16" bindtap="publishAll" disabled="{{busy}}" wx:if="{{batches.length}}">
+    全部按建议价发单
+  </button>
+
+  <view class="batch" wx:for="{{batches}}" wx:key="id">
+    <view class="batch-head">
+      <view class="batch-title">{{item.buildingText}} · {{item.floorRange}}</view>
+      <view class="tag tag-green">{{item.orderCount}} 单</view>
+    </view>
+
+    <view class="breakdown">
+      <text>基础 {{item.breakdown.base}}</text>
+      <text class="dot">+</text>
+      <text>楼层 {{item.breakdown.floor}}</text>
+      <text class="dot">+</text>
+      <text>积压 {{item.breakdown.backlog}}</text>
+    </view>
+
+    <view class="price-row">
+      <text class="muted">建议 ¥{{item.suggestedPrice}}/单</text>
+      <view class="price-input-wrap">
+        <text class="yuan">¥</text>
+        <input class="price-input" type="digit" value="{{item.priceInput}}"
+               bindinput="onPriceInput" data-index="{{index}}" />
+        <text class="muted">/单</text>
+      </view>
+    </view>
+
+    <view class="batch-foot">
+      <text class="muted">整批 {{item.costText}}</text>
+      <view class="publish-btn {{busy ? 'disabled' : ''}}" bindtap="publishOne" data-index="{{index}}">发单</view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!batches.length && !loading}}">
+    没有待发单的批次{{'\n'}}订单进池后每 5 分钟自动成批
+  </view>
+
+  <view class="empty" wx:elif="{{loading}}">加载中…</view>
+
+</view>

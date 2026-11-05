@@ -118,7 +118,7 @@ function newBatch(block, meta) {
     volume: block.volume,
     minFloor: Math.min.apply(null, block.orders.map(floorOf)),
     maxFloor: block.maxFloor,
-    status: 'BIDDING',
+    status: 'DRAFT',
     createdAt: Date.now(),
   }
 }
@@ -243,7 +243,7 @@ function buildBatches(orders, options) {
         volume: list.reduce(function (s, o) { return s + volumeOf(o) }, 0),
         minFloor: Math.min.apply(null, list.map(floorOf)),
         maxFloor: Math.max.apply(null, list.map(floorOf)),
-        status: 'BIDDING',
+        status: 'DRAFT',
         crossBuilding: true,
         createdAt: Date.now(),
       }

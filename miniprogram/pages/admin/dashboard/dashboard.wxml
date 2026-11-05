@@ -5,7 +5,10 @@
       <view class="head-title">调度台</view>
       <view class="muted">{{username}} · 下拉刷新</view>
     </view>
-    <view class="logout" bindtap="logout">退出</view>
+    <view class="head-actions">
+      <view class="post-btn" bindtap="goPost">发单</view>
+      <view class="logout" bindtap="logout">退出</view>
+    </view>
   </view>
 
   <view class="error-card" wx:if="{{error}}">{{error}}</view>

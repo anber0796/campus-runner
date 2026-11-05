@@ -11,6 +11,7 @@ const auth = require('../lib/auth')
 const { AppError } = require('../lib/errors')
 const config = require('../lib/config')
 const executor = require('../lib/executor')
+const pricing = require('../lib/pricing')
 const { patrol } = require('../lib/patrol')
 
 const SESSION = 'admin_sessions'
@@ -288,7 +289,109 @@ async function assign(args) {
   return { ok: true }
 }
 
+
+// ---------------------------------------------------------------- 发单
+
+/**
+ * 待发单的批次（草稿态）+ 建议价
+ * 代理商看到的是"这一批建议多少、总共要花多少"，而不是一堆原始数字。
+ */
+async function pendingBatches(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+  const list = await fetchAll(db.collection('batches').where({ tenantId: tenantId, status: 'DRAFT' }))
+  const backlog = list.length
+
+  const batches = list.map(function (b) {
+    const s = pricing.suggestPrice({
+      maxFloor: b.maxFloor,
+      distanceMeters: b.distanceMeters || 0,
+      isRush: !!b.isRush,
+      backlog: backlog,
+    })
+    return {
+      id: b._id,
+      buildingId: b.buildingId,
+      buildingIds: b.buildingIds || [b.buildingId],
+      floorBand: b.floorBand,
+      floorRange: (b.minFloor || 1) + '-' + (b.maxFloor || 1) + ' 层',
+      orderCount: b.orderCount,
+      suggestedPrice: s.price,
+      breakdown: s.breakdown,
+      cost: pricing.batchCost(s.price, b.orderCount),
+    }
+  })
+
+  const totalCost = Math.round(
+    batches.reduce(function (s, b) { return s + b.cost }, 0) * 100
+  ) / 100
+
+  return {
+    batches: batches,
+    summary: {
+      count: batches.length,
+      totalOrders: batches.reduce(function (s, b) { return s + b.orderCount }, 0),
+      totalCost: totalCost,
+      backlog: backlog,
+    },
+  }
+}
+
+/** 发单：给一个草稿批次定价，放进抢单池 */
+async function publishBatch(args) {
+  const db = args.db
+  const event = args.event
+  const batchId = event.batchId
+
+  const res = await db.collection('batches').doc(batchId).get()
+  const batch = res.data
+  if (!batch) throw AppError(404, '批次不存在')
+  if (batch.status !== 'DRAFT') throw AppError(409, '批次状态是 ' + batch.status + '，不能发单')
+
+  const check = pricing.validatePostPrice(event.price)
+  if (!check.ok) throw AppError(400, check.reason)
+
+  const r = await db.collection('batches')
+    .where({ _id: batchId, status: 'DRAFT' })
+    .update({
+      data: {
+        status: 'POOLED',
+        price: check.value,
+        publishedAt: Date.now(),
+        claimDeadline: Date.now() + config.CLAIM_WINDOW_MIN * 60000,
+        updatedAt: Date.now(),
+        version: db.command.inc(1),
+      },
+    })
+
+  const updated = r && r.stats ? r.stats.updated : 0
+  if (updated !== 1) throw AppError(409, '这批已被发布')
+
+  return { ok: true, price: check.value }
+}
+
+/** 一键按建议价发布全部草稿 */
+async function publishAll(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+  const list = await fetchAll(db.collection('batches').where({ tenantId: tenantId, status: 'DRAFT' }))
+  let published = 0
+
+  for (const b of list) {
+    const s = pricing.suggestPrice({ maxFloor: b.maxFloor, backlog: list.length })
+    try {
+      await publishBatch({ db: db, event: { batchId: b._id, price: s.price } })
+      published++
+    } catch (e) {
+      console.warn('[publishAll]', b._id, e.message)
+    }
+  }
+
+  return { published: published, total: list.length }
+}
+
 // ---------------------------------------------------------------- 路由表
+
 
 const HANDLERS = {
   'admin.bootstrap': { fn: doBootstrap, public: true },
@@ -297,6 +400,9 @@ const HANDLERS = {
   'admin.execute': { fn: executeAll },
   'admin.assign': { fn: assign },
   'admin.republish': { fn: republish },
+  'admin.pendingBatches': { fn: pendingBatches },
+  'admin.publishBatch': { fn: publishBatch },
+  'admin.publishAll': { fn: publishAll },
 }
 
 /**

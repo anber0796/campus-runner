@@ -110,3 +110,17 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+.head-actions {
+  display: flex;
+  align-items: center;
+}
+
+.post-btn {
+  font-size: 24rpx;
+  color: #fff;
+  background: #1f9d55;
+  padding: 8rpx 24rpx;
+  border-radius: 24rpx;
+  margin-right: 16rpx;
+}

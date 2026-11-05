@@ -11,7 +11,8 @@
     "pages/admin/dashboard/dashboard",
     "pages/grab/grab",
     "pages/invite/invite",
-    "pages/pickup/pickup"
+    "pages/pickup/pickup",
+    "pages/admin/post/post"
   ],
   "window": {
     "backgroundTextStyle": "dark",

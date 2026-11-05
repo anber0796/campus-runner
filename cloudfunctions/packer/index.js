@@ -18,6 +18,7 @@ const { buildPacks } = require('./lib/packer')
 const { patrol } = require('./lib/patrol')
 const executor = require('./lib/executor')
 const notify = require('./lib/notify')
+const batcher = require('./lib/batcher')
 const config = require('./lib/config')
 
 /**
@@ -254,6 +255,54 @@ async function runNotify() {
   return { ok: true, eligible: eligible.length, sent: sent, skipped: skipped, failed: failed }
 }
 
+/**
+ * 自动成批（定时触发器，建议每 5 分钟跑一次）
+ *
+ * 池子里的订单 → 按「食堂×楼栋×波次×楼层段」成批 → 落库为草稿态。
+ * 草稿态**不发给学生**，必须由代理商定价后才进池子（POOLED）。
+ * 这一步刻意不做成"自动发单"——价格由人定，是这套模式的核心。
+ */
+async function runGenerate() {
+  const tenantId = config.TENANT_ID
+  const raw = await fetchAll(db.collection('orders').where({ tenantId: tenantId, status: 'CREATED' }))
+
+  if (!raw.length) return { ok: true, created: 0, stats: { inputOrders: 0 } }
+
+  // batcher 用 o.id 做键，数据库文档用 _id，这里统一
+  const orders = raw.map(function (o) { return Object.assign({}, o, { id: o._id }) })
+  const result = batcher.buildBatches(orders, { allowCrossBuilding: false })
+
+  let created = 0
+  for (const b of result.batches) {
+    await db.collection('batches').add({
+      data: {
+        tenantId: tenantId,
+        canteenId: b.canteenId,
+        buildingId: b.buildingId,
+        buildingIds: b.buildingIds || [b.buildingId],
+        waveId: b.waveId,
+        floorBand: b.floorBand,
+        orders: b.orders,
+        orderCount: b.orderCount,
+        volume: b.volume,
+        minFloor: b.minFloor,
+        maxFloor: b.maxFloor,
+        status: 'DRAFT',
+        version: 0,
+        createdAt: Date.now(),
+      },
+    })
+    created++
+
+    // 订单标为已入批，避免下一轮重复成批
+    await db.collection('orders')
+      .where({ _id: _.in(b.orders), status: 'CREATED' })
+      .update({ data: { status: 'PACKED', updatedAt: Date.now() } })
+  }
+
+  return { ok: true, created: created, stats: result.stats, leftover: result.leftover.length }
+}
+
 exports.main = async function (event) {
   const action = (event && event.action) || 'pack'
 
@@ -285,6 +334,7 @@ exports.main = async function (event) {
     if (action === 'patrol') return await runPatrol()
     if (action === 'execute') return await runExecute()
     if (action === 'notify') return await runNotify()
+    if (action === 'generate') return await runGenerate()
     return { ok: false, msg: '未知 action: ' + action }
   } catch (e) {
     console.error('[packer]', action, e)

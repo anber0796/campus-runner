@@ -56,6 +56,12 @@ test('同食堂同楼同波次 → 合成一批', function () {
   assert.strictEqual(r.batches[0].orderCount, 3)
 })
 
+test('新批次是草稿态：等代理商定价后才进池子', function () {
+  const r = batcher.buildBatches(seq('a', 3))
+  assert.strictEqual(r.batches[0].status, 'DRAFT')
+  assert.strictEqual(r.batches[0].price, undefined, '成批阶段不该有价格')
+})
+
 test('不同楼栋 → 分开成批', function () {
   const orders = seq('a', 2).concat(seq('b', 2, { buildingId: 'B5' }))
   const r = batcher.buildBatches(orders)

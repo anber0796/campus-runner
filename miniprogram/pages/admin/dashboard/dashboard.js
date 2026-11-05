@@ -103,6 +103,10 @@ Page({
     })
   },
 
+  goPost() {
+    wx.navigateTo({ url: '/pages/admin/post/post' })
+  },
+
   logout() {
     adminApi.clearSession()
     wx.redirectTo({ url: '/pages/admin/login/login' })

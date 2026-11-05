@@ -128,6 +128,16 @@ function makeDb(seed) {
       count: function () {
         return Promise.resolve({ total: store[name].length })
       },
+      update: function (arg) {
+        let rows = store[name].slice()
+        if (api._q) {
+          rows = rows.filter(function (r) {
+            return Object.keys(api._q).every(function (k) { return r[k] === api._q[k] })
+          })
+        }
+        rows.forEach(function (r) { Object.assign(r, arg.data) })
+        return Promise.resolve({ stats: { updated: rows.length } })
+      },
       add: function (arg) {
         seq += 1
         const id = 'id' + seq
@@ -255,6 +265,51 @@ async function main() {
   await asyncTest('未知管理接口 → 404', async function () {
     const r = await callRoute(seededDb(), 'admin.deleteEverything')
     assert.strictEqual(r.code, 404)
+  })
+
+  // ---------- 发单 ----------
+  function dbWithBatch(status) {
+    const db = seededDb()
+    db._store.batches = [{
+      _id: 'b1',
+      tenantId: 'demo-school',
+      buildingId: 'B3',
+      buildingIds: ['B3'],
+      floorBand: 'mid',
+      minFloor: 4,
+      maxFloor: 5,
+      orderCount: 3,
+      status: status || 'DRAFT',
+    }]
+    return db
+  }
+
+  await asyncTest('草稿批次可以发单，价格写入', async function () {
+    const db = dbWithBatch('DRAFT')
+    const login = await callRoute(db, 'admin.login', { username: 'ops', password: KNOWN_PASSWORD })
+    const r = await callRoute(db, 'admin.publishBatch', { token: login.data.token, batchId: 'b1', price: 1.25 })
+    assert.strictEqual(r.code, 0, JSON.stringify(r))
+    assert.strictEqual(r.data.price, 1.25)
+  })
+
+  await asyncTest('价格低于底价 → 拒绝', async function () {
+    const db = dbWithBatch('DRAFT')
+    const login = await callRoute(db, 'admin.login', { username: 'ops', password: KNOWN_PASSWORD })
+    const r = await callRoute(db, 'admin.publishBatch', { token: login.data.token, batchId: 'b1', price: 0.1 })
+    assert.strictEqual(r.code, 400)
+    assert.strictEqual(r.msg, 'below_floor')
+  })
+
+  await asyncTest('已发布的批次不能重复发单', async function () {
+    const db = dbWithBatch('POOLED')
+    const login = await callRoute(db, 'admin.login', { username: 'ops', password: KNOWN_PASSWORD })
+    const r = await callRoute(db, 'admin.publishBatch', { token: login.data.token, batchId: 'b1', price: 1.2 })
+    assert.strictEqual(r.code, 409)
+  })
+
+  await asyncTest('未登录不能发单（越权保护）', async function () {
+    const r = await callRoute(dbWithBatch('DRAFT'), 'admin.publishBatch', { batchId: 'b1', price: 1.2 })
+    assert.strictEqual(r.code, 401)
   })
 
   console.log('\n通过 ' + passed + ' 项')

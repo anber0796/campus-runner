@@ -89,4 +89,16 @@ module.exports = {
   republish: function (packId) {
     return call('admin.republish', { packId: packId })
   },
+
+  pendingBatches: function () {
+    return call('admin.pendingBatches')
+  },
+
+  publishBatch: function (batchId, price) {
+    return call('admin.publishBatch', { batchId: batchId, price: price })
+  },
+
+  publishAll: function () {
+    return call('admin.publishAll')
+  },
 }

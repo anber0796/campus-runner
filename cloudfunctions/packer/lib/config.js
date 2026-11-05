@@ -8,6 +8,9 @@ module.exports = {
   // 波次前多少分钟跑成包（配合定时触发器使用）
   PACK_AHEAD_MIN: 15,
 
+  // 批次进池子后，多久内可抢（超过自动撤回，避免挂着过期单）
+  CLAIM_WINDOW_MIN: 15,
+
   // 订阅消息模板 ID（小程序后台 → 订阅消息 → 我的模板，选「订单/任务提醒」类）
   // 留空时 runNotify 会直接跳过，不会报错
   SUBSCRIBE_TEMPLATE_ID: process.env.SUBSCRIBE_TEMPLATE_ID || '',
