@@ -229,6 +229,13 @@ function groupPoolByCanteen(list) {
   })
 }
 
+function applyOpen(groups, openMap) {
+  const m = openMap || {}
+  return (groups || []).map(function (g) {
+    return Object.assign({}, g, { open: !!m[g.key] })
+  })
+}
+
 Page({
   data: {
     loading: true,
@@ -236,6 +243,7 @@ Page({
     tab: 'pool',
     pool: [],
     poolGroups: [],
+    openGroups: {},
     pick: [],
     deliver: [],
     deliverGroups: [],
@@ -302,7 +310,7 @@ Page({
           student: home.student || null,
           canClaim: home.canClaim || null,
           pool: (home.batches || []).map(decorateBatch),
-          poolGroups: groupPoolByCanteen((home.batches || []).map(decorateBatch)),
+          poolGroups: applyOpen(groupPoolByCanteen((home.batches || []).map(decorateBatch)), that.data.openGroups),
           pick: mergeByCanteen(active.filter(function (b) {
             return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
           })),
@@ -352,7 +360,10 @@ Page({
         remainLevel: remainLevelOf(b),
       })
     })
-    this.setData({ pool: pool, poolGroups: groupPoolByCanteen(pool) })
+    this.setData({
+      pool: pool,
+      poolGroups: applyOpen(groupPoolByCanteen(pool), this.data.openGroups),
+    })
     if (expired) this.load()
   },
 
@@ -373,10 +384,14 @@ Page({
 
   toggleGroup(e) {
     const idx = e.currentTarget.dataset.idx
-    const groups = this.data.poolGroups
-    if (!groups[idx]) return
-    const patch = {}
-    patch['poolGroups[' + idx + '].open'] = !groups[idx].open
+    const g = this.data.poolGroups[idx]
+    if (!g) return
+
+    const open = Object.assign({}, this.data.openGroups)
+    open[g.key] = !g.open
+
+    const patch = { openGroups: open }
+    patch['poolGroups[' + idx + '].open'] = !g.open
     this.setData(patch)
   },
 
@@ -396,8 +411,9 @@ Page({
         riderApi
           .grab(id)
           .then(function () {
-            that.setData({ busy: false, tab: 'pick' })
-            wx.showToast({ title: '抢到了', icon: 'success' })
+            // 留在可抢单：学生通常要连抢几个食堂/几栋楼，别把他踢走
+            that.setData({ busy: false })
+            wx.showToast({ title: '抢到了，可继续抢', icon: 'success' })
             that.load()
           })
           .catch(function (err) {
