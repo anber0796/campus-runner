@@ -232,7 +232,10 @@ async function main() {
 
     const stats = await callRoute(db, 'admin.stats', { token: login.data.token })
     assert.strictEqual(stats.code, 0, JSON.stringify(stats))
-    assert.ok(stats.data && typeof stats.data.avgOrdersPerPack === 'number')
+    // 指标已改成批次口径
+    assert.ok(stats.data && stats.data.counts, '应返回各状态计数')
+    assert.ok(typeof stats.data.pooledOrders === 'number')
+    assert.ok(typeof stats.data.todayCost === 'number')
   })
 
   await asyncTest('token 过期 → 401，并把会话删掉', async function () {

@@ -17,53 +17,62 @@
   <block wx:if="{{stats}}">
     <view class="stats">
       <view class="stat">
-        <view class="stat-num">{{stats.packCount}}</view>
-        <view class="stat-label">顺路包</view>
+        <view class="stat-num {{stats.draftCount ? 'warn' : ''}}">{{stats.draftCount}}</view>
+        <view class="stat-label">待发单</view>
       </view>
       <view class="stat">
-        <view class="stat-num {{stats.avgOk ? 'good' : 'warn'}}">{{stats.avgOrdersPerPack}}</view>
-        <view class="stat-label">包均单量</view>
+        <view class="stat-num">{{stats.pooledCount}}</view>
+        <view class="stat-label">在池子里</view>
       </view>
       <view class="stat">
-        <view class="stat-num {{stats.fallbackCount ? 'warn' : ''}}">{{stats.fallbackCount}}</view>
-        <view class="stat-label">已回落</view>
+        <view class="stat-num">{{stats.counts.CLAIMED + stats.counts.PICKED + stats.counts.ASSIGNED}}</view>
+        <view class="stat-label">进行中</view>
       </view>
       <view class="stat">
-        <view class="stat-num {{stats.alertCount ? 'warn' : ''}}">{{stats.alertCount}}</view>
-        <view class="stat-label">待处理</view>
+        <view class="stat-num good">{{stats.deliveredToday}}</view>
+        <view class="stat-label">今日送达</view>
       </view>
     </view>
 
-    <button class="btn-primary" bindtap="execute" loading="{{executing}}" disabled="{{executing}}">
-      巡检并执行{{stats.patrol ? '（有 ' + stats.patrol + ' 条待处理）' : ''}}
-    </button>
+    <view class="card row2">
+      <view class="mini">
+        <view class="mini-num">¥{{stats.todayCost}}</view>
+        <view class="mini-label">今日运力成本</view>
+      </view>
+      <view class="mini">
+        <view class="mini-num {{stats.pooledOrders ? '' : 'warn'}}">{{stats.pooledOrders}}</view>
+        <view class="mini-label">待抢订单</view>
+      </view>
+      <view class="mini">
+        <view class="mini-num {{stats.noTaker ? 'warn' : ''}}">{{stats.noTaker}}</view>
+        <view class="mini-label">超时无人抢</view>
+      </view>
+      <view class="mini">
+        <view class="mini-num {{stats.staleClaims ? 'warn' : ''}}">{{stats.staleClaims}}</view>
+        <view class="mini-label">抢了未取</view>
+      </view>
+    </view>
 
-    <!-- 告警 -->
+    <view class="card tip-card" wx:if="{{stats.draftCount}}">
+      有 {{stats.draftCount}} 个批次还没定价，学生看不到。去「发单」把它们放出去。
+    </view>
+    <view class="card tip-card warn" wx:if="{{stats.noTaker}}">
+      有 {{stats.noTaker}} 个批次过了抢单时间还没人接，考虑提价或改指派。
+    </view>
+    <view class="card tip-card warn" wx:if="{{stats.staleClaims}}">
+      有 {{stats.staleClaims}} 个批次抢了 15 分钟没去取，系统会自动收回。
+    </view>
+
     <view class="section-title">待处理告警</view>
-    <view class="card" wx:if="{{alerts.length}}">
-      <view class="alert-row" wx:for="{{alerts}}" wx:key="id">
+    <view class="card" wx:if="{{stats.alerts.length}}">
+      <view class="alert-row" wx:for="{{stats.alerts}}" wx:key="id">
         <view class="alert-dot {{item.severity === 'high' ? 'high' : 'mid'}}"></view>
         <view class="alert-text">{{item.message}}</view>
       </view>
     </view>
     <view class="card empty-card" wx:else>暂无告警</view>
 
-    <!-- 包列表 -->
-    <view class="section-title">顺路包</view>
-    <view class="card pack" wx:for="{{packs}}" wx:key="id">
-      <view class="row-between">
-        <view class="pack-title">{{item.buildingId}} · {{item.canteenId}} · {{item.orderCount}} 单</view>
-        <view class="{{item.statusClass}}">{{item.statusText}}</view>
-      </view>
-      <view class="muted mt8">尾号 {{item.tailText}}</view>
-      <view class="row-between mt12">
-        <view class="muted">{{item.incomeText}}</view>
-        <view class="republish" wx:if="{{item.status === 'fallback'}}" bindtap="republish" data-id="{{item.id}}">
-          重派回池
-        </view>
-      </view>
-    </view>
-    <view class="card empty-card" wx:if="{{!packs.length}}">没有进行中的包</view>
+    <view class="foot-note">数据来自 batches 集合 · 每次下拉重新统计</view>
   </block>
 
   <view class="card empty-card" wx:elif="{{loading}}">加载中…</view>

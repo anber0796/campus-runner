@@ -14,6 +14,7 @@ const executor = require('../lib/executor')
 const pricing = require('../lib/pricing')
 const settlement = require('../lib/settlement')
 const assignEngine = require('../lib/assign')
+const invite = require('../lib/invite')
 const { patrol } = require('../lib/patrol')
 
 const SESSION = 'admin_sessions'
@@ -123,43 +124,55 @@ async function fetchAll(query, pageSize) {
 
 async function stats(args) {
   const db = args.db
-  const _ = db.command
   const tenantId = config.TENANT_ID
+  const now = Date.now()
 
-  const [packs, alerts] = await Promise.all([
-    fetchAll(db.collection('packs').where({ tenantId: tenantId })),
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const [batches, alerts] = await Promise.all([
+    fetchAll(db.collection('batches').where({ tenantId: tenantId })),
     fetchAll(db.collection('alerts').where({ tenantId: tenantId, handled: false })),
   ])
 
-  const packedOrders = packs.reduce(function (s, p) { return s + (p.orderCount || 0) }, 0)
-  const avg = packs.length ? Math.round((packedOrders / packs.length) * 100) / 100 : 0
+  const counts = { DRAFT: 0, POOLED: 0, ASSIGNED: 0, CLAIMED: 0, PICKED: 0, DELIVERED: 0 }
+  let pooledOrders = 0
+  let activeOrders = 0
+  let deliveredToday = 0
+  let todayCost = 0
+  let noTaker = 0
+  let staleClaims = 0
+
+  batches.forEach(function (b) {
+    counts[b.status] = (counts[b.status] || 0) + 1
+    const n = b.orderCount || 0
+
+    if (b.status === 'POOLED') {
+      pooledOrders += n
+      // 过了抢单截止还没人抢：最该被运营看见的一类
+      if (b.claimDeadline && now > b.claimDeadline) noTaker++
+    }
+    if (b.status === 'ASSIGNED' || b.status === 'CLAIMED' || b.status === 'PICKED') activeOrders += n
+    if (b.status === 'CLAIMED' && b.claimedAt && (now - b.claimedAt) > 15 * 60000) staleClaims++
+
+    if (b.status === 'DELIVERED' && (b.deliveredAt || 0) >= todayStart.getTime()) {
+      deliveredToday += n
+      todayCost += (Number(b.price) || 0) * n
+    }
+  })
 
   return {
-    packCount: packs.length,
-    packedOrders: packedOrders,
-    avgOrdersPerPack: avg,
-    avgOk: avg >= 3.5,
-    fallbackCount: packs.filter(function (p) { return p.status === 'fallback' }).length,
+    counts: counts,
+    draftCount: counts.DRAFT,
+    pooledCount: counts.POOLED,
+    pooledOrders: pooledOrders,
+    activeOrders: activeOrders,
+    deliveredToday: deliveredToday,
+    todayCost: Math.round(todayCost * 100) / 100,
+    noTaker: noTaker,
+    staleClaims: staleClaims,
     alertCount: alerts.length,
     alerts: alerts.slice(-30).reverse(),
-    packs: packs
-      .filter(function (p) { return p.status !== 'delivered' })
-      .slice(0, 50)
-      .map(function (p) {
-        return {
-          id: p._id,
-          buildingId: p.buildingId,
-          canteenId: p.canteenId,
-          waveId: p.waveId,
-          orderCount: p.orderCount,
-          status: p.status,
-          income: p.income ? p.income.total : 0,
-          acceptedBy: p.acceptedBy || '',
-          fallbackReason: p.fallbackReason || '',
-          tails: (p.orders || []).map(function (o) { return o.tail }),
-        }
-      }),
-    patrol: patrol(packs, Date.now()).length,
   }
 }
 
@@ -416,7 +429,59 @@ async function settleWallets(args) {
     updated++
   }
 
-  return { ok: true, scanned: pending.length, settled: updated, amount: result.settledAmount }
+  // ---- 邀请奖励入账（幂等：按组编号，发过不再发）----
+  const students = await fetchAll(db.collection('students'))
+  let inviteIssued = 0
+
+  for (const stu of students) {
+    if (!stu.inviteCode || !stu.openid) continue
+
+    const invitees = await fetchAll(db.collection('students').where({ invitedBy: stu.openid }))
+    if (!invitees.length) continue
+
+    const done = await fetchAll(db.collection('invite_rewards').where({ inviterId: stu._id }))
+    const due = invite.dueRewards(
+      invitees.map(function (x) {
+        return { registeredAt: x.createdAt || 0, firstOrderAt: x.firstOrderAt || null }
+      }),
+      done.map(function (d) { return d.key })
+    )
+
+    for (const d of due) {
+      // 先落发放记录，再记钱包流水，顺序反了会出现"有钱没记录"
+      await db.collection('invite_rewards').add({
+        data: {
+          tenantId: tenantId,
+          inviterId: stu._id,
+          openid: stu.openid,
+          key: d.key,
+          type: d.type,
+          amount: d.amount,
+          at: Date.now(),
+        },
+      })
+      await db.collection('wallet_logs').add({
+        data: {
+          tenantId: tenantId,
+          openid: stu.openid,
+          type: 'invite_reward',
+          amount: d.amount,
+          status: 'pending',
+          title: '邀请奖励 · ' + d.key,
+          createdAt: Date.now(),
+        },
+      })
+      inviteIssued++
+    }
+  }
+
+  return {
+    ok: true,
+    scanned: pending.length,
+    settled: updated,
+    amount: result.settledAmount,
+    inviteIssued: inviteIssued,
+  }
 }
 
 // ---------------------------------------------------------------- 指派（L2）

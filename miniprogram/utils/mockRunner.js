@@ -541,19 +541,44 @@ const handlers = {
     return delay({ assigned: pooled.length, skipped: 0, total: pooled.length })
   },
 
+  'admin.settle': function () {
+    return delay({ ok: true, settled: 0, inviteIssued: 0 })
+  },
+
   'admin.stats': function () {
-    const pooled = state.batches.filter(function (b) { return b.status === 'POOLED' }).length
+    const counts = { DRAFT: 0, POOLED: 0, ASSIGNED: 0, CLAIMED: 0, PICKED: 0, DELIVERED: 0 }
+    let pooledOrders = 0
+    let activeOrders = 0
+    let todayCost = 0
+    let deliveredToday = 0
+    let noTaker = 0
+
+    state.batches.forEach(function (b) {
+      counts[b.status] = (counts[b.status] || 0) + 1
+      const n = b.orderCount || 0
+      if (b.status === 'POOLED') {
+        pooledOrders += n
+        if (b.claimDeadline && Date.now() > b.claimDeadline) noTaker++
+      }
+      if (b.status === 'ASSIGNED' || b.status === 'CLAIMED' || b.status === 'PICKED') activeOrders += n
+      if (b.status === 'DELIVERED') {
+        deliveredToday += n
+        todayCost += (b.price || 0) * n
+      }
+    })
+
     return delay({
-      packCount: state.batches.length,
-      packedOrders: state.batches.reduce(function (s, b) { return s + b.orderCount }, 0),
-      avgOrdersPerPack: 3.2,
-      avgOk: false,
-      fallbackCount: 0,
+      counts: counts,
+      draftCount: counts.DRAFT,
+      pooledCount: counts.POOLED,
+      pooledOrders: pooledOrders,
+      activeOrders: activeOrders,
+      deliveredToday: deliveredToday,
+      todayCost: round2(todayCost),
+      noTaker: noTaker,
+      staleClaims: 0,
       alertCount: 0,
       alerts: [],
-      packs: [],
-      patrol: 0,
-      pooled: pooled,
     })
   },
 }

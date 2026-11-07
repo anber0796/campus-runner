@@ -166,6 +166,43 @@ test('注入随机源时结果可预测（便于测试）', function () {
 })
 
 // ---------- 汇总 ----------
+// ---------- 待发放奖励（幂等） ----------
+
+test('10 人注册、没发过 → 1 笔注册奖励', function () {
+  const due = invite.dueRewards(mkInvitees(10, false), [])
+  assert.strictEqual(due.length, 1)
+  assert.strictEqual(due[0].key, 'register:1')
+  assert.strictEqual(due[0].amount, 20)
+})
+
+test('已经发过 register:1 → 不再发', function () {
+  const due = invite.dueRewards(mkInvitees(10, false), ['register:1'])
+  assert.strictEqual(due.length, 0)
+})
+
+test('20 人注册、发过第 1 组 → 只补第 2 组', function () {
+  const due = invite.dueRewards(mkInvitees(20, false), ['register:1'])
+  assert.strictEqual(due.length, 1)
+  assert.strictEqual(due[0].key, 'register:2')
+})
+
+test('10 人完成首单 → 补一笔 first_order:1', function () {
+  const due = invite.dueRewards(mkInvitees(10, true), ['register:1'])
+  assert.strictEqual(due.length, 1)
+  assert.strictEqual(due[0].key, 'first_order:1')
+  assert.strictEqual(due[0].amount, 30)
+})
+
+test('全部发完 → 再跑一次也不重复发', function () {
+  const all = ['register:1', 'first_order:1']
+  assert.strictEqual(invite.dueRewards(mkInvitees(10, true), all).length, 0)
+})
+
+test('空邀请列表 → 没有待发', function () {
+  assert.deepStrictEqual(invite.dueRewards([], []), [])
+  assert.deepStrictEqual(invite.dueRewards(null, []), [])
+})
+
 console.log('\n通过 ' + passed + ' 项')
 if (failures.length) {
   console.log('失败 ' + failures.length + ' 项')

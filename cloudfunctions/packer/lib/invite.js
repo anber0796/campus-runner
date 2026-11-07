@@ -114,8 +114,50 @@ function validateInvite(inviter, invitee, now, rules) {
   return { ok: true }
 }
 
+/**
+ * 算出「还没发过」的奖励。
+ *
+ * 幂等靠 issued 里的 key：「register:1」「first_order:2」这种按组编号，
+ * 发过一次就再也不会重发——哪怕结算任务一天跑十遍。
+ *
+ * @param {Array} invitees [{ registeredAt, firstOrderAt }]
+ * @param {Array|Set} issued 已发放过的 key
+ * @returns {Array<{key, type, amount, teamIndex}>}
+ */
+function dueRewards(invitees, issued, rules) {
+  const cfg = Object.assign({}, RULES, rules || {})
+  const done = {}
+  ;(issued || []).forEach(function (k) { done[k] = true })
+
+  const list = invitees || []
+  const registered = list.length
+  const firstOrdered = list.filter(function (i) {
+    if (!i.firstOrderAt) return false
+    if (!i.registeredAt) return true
+    return ((i.firstOrderAt - i.registeredAt) / 86400000) <= cfg.firstOrderWindowDays
+  }).length
+
+  const out = []
+  const regTeams = Math.floor(registered / cfg.teamSize)
+  for (let i = 1; i <= regTeams; i++) {
+    const key = 'register:' + i
+    if (done[key]) continue
+    out.push({ key: key, type: 'register_team', amount: cfg.registerReward, teamIndex: i })
+  }
+
+  const orderTeams = Math.floor(firstOrdered / cfg.teamSize)
+  for (let i = 1; i <= orderTeams; i++) {
+    const key = 'first_order:' + i
+    if (done[key]) continue
+    out.push({ key: key, type: 'first_order_team', amount: cfg.firstOrderReward, teamIndex: i })
+  }
+
+  return out
+}
+
 module.exports = {
   RULES: RULES,
+  dueRewards: dueRewards,
   genCode: genCode,
   calcInviteReward: calcInviteReward,
   validateInvite: validateInvite,

@@ -8,6 +8,21 @@
 .head-title {
   font-size: 36rpx;
   font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+}
+
+.post-btn {
+  font-size: 24rpx;
+  color: #fff;
+  background: #1f9d55;
+  padding: 8rpx 22rpx;
+  border-radius: 24rpx;
+  margin-right: 12rpx;
 }
 
 .logout {
@@ -22,8 +37,8 @@
   display: flex;
   background: #fff;
   border-radius: 20rpx;
-  padding: 32rpx 12rpx;
-  margin-bottom: 24rpx;
+  padding: 30rpx 8rpx;
+  margin-bottom: 20rpx;
   box-shadow: 0 2rpx 12rpx rgba(16, 24, 40, 0.04);
 }
 
@@ -41,15 +56,51 @@
 .stat-num.warn { color: #e08a00; }
 
 .stat-label {
-  font-size: 22rpx;
+  font-size: 21rpx;
   color: #6b7280;
   margin-top: 6rpx;
+}
+
+.row2 {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.mini {
+  width: 50%;
+  padding: 12rpx 0;
+}
+
+.mini-num {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.mini-num.warn { color: #d93b3b; }
+
+.mini-label {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.tip-card {
+  background: #fffdf7;
+  border-left: 8rpx solid #f0a020;
+  font-size: 25rpx;
+  color: #3d424a;
+  line-height: 1.7;
+}
+
+.tip-card.warn {
+  background: #fdf3f3;
+  border-left-color: #d93b3b;
 }
 
 .section-title {
   font-size: 26rpx;
   color: #6b7280;
-  margin: 32rpx 8rpx 12rpx;
+  margin: 28rpx 8rpx 12rpx;
 }
 
 .alert-row {
@@ -77,29 +128,19 @@
   margin-left: 16rpx;
   font-size: 26rpx;
   line-height: 1.6;
-  color: #3d424a;
-}
-
-.pack-title {
-  font-size: 29rpx;
-  font-weight: 600;
-}
-
-.mt8 { margin-top: 8rpx; }
-.mt12 { margin-top: 16rpx; }
-
-.republish {
-  font-size: 24rpx;
-  color: #1f9d55;
-  border: 1rpx solid #1f9d55;
-  border-radius: 24rpx;
-  padding: 6rpx 22rpx;
 }
 
 .empty-card {
   text-align: center;
   color: #6b7280;
   font-size: 25rpx;
+}
+
+.foot-note {
+  text-align: center;
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-top: 24rpx;
 }
 
 .error-card {
@@ -109,18 +150,4 @@
   padding: 20rpx 24rpx;
   font-size: 25rpx;
   margin-bottom: 24rpx;
-}
-
-.head-actions {
-  display: flex;
-  align-items: center;
-}
-
-.post-btn {
-  font-size: 24rpx;
-  color: #fff;
-  background: #1f9d55;
-  padding: 8rpx 24rpx;
-  border-radius: 24rpx;
-  margin-right: 16rpx;
 }

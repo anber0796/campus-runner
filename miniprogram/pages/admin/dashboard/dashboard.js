@@ -41,15 +41,6 @@ Page({
         that.setData({
           loading: false,
           stats: s,
-          packs: (s.packs || []).map(function (p) {
-            const st = STATUS[p.status] || { text: p.status, cls: 'tag tag-gray' }
-            return Object.assign({}, p, {
-              statusText: st.text,
-              statusClass: st.cls,
-              tailText: (p.tails || []).join(' / '),
-              incomeText: '¥' + (p.income || 0),
-            })
-          }),
           alerts: s.alerts || [],
         })
       })
@@ -62,7 +53,7 @@ Page({
       })
   },
 
-  // 巡检 + 执行：无人接的回落、接单不动的回收并扣分
+  // 兼容旧调用（页面已不再使用巡检按钮）
   execute() {
     if (this.data.executing) return
     const that = this

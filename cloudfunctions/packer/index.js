@@ -19,6 +19,7 @@ const { patrol } = require('./lib/patrol')
 const executor = require('./lib/executor')
 const notify = require('./lib/notify')
 const batcher = require('./lib/batcher')
+const release = require('./lib/release')
 const config = require('./lib/config')
 
 /**
@@ -323,6 +324,67 @@ async function runGenerate() {
   return { ok: true, created: created, stats: result.stats, leftover: result.leftover.length }
 }
 
+/**
+ * 超时释放（定时触发器，建议每 2 分钟一次）
+ *
+ * 抢了不取 → 放回池子，扣信用分，把 activeClaims 减回来。
+ * 不做这一步，学生攒满 2 个未完成批次就永远抢不了新单。
+ */
+async function runSweep() {
+  const tenantId = config.TENANT_ID
+  const batches = await fetchAll(db.collection('batches').where({
+    tenantId: tenantId,
+    status: 'CLAIMED',
+  }))
+
+  const expired = release.findExpired(batches, Date.now())
+  let released = 0
+
+  for (const item of expired) {
+    const r = await db.collection('batches')
+      .where({ _id: item.batchId, status: 'CLAIMED', claimedBy: item.claimedBy })
+      .update({
+        data: {
+          status: 'POOLED',
+          claimedBy: null,
+          claimedAt: null,
+          releasedAt: Date.now(),
+          releaseReason: release.RULES.reason,
+          updatedAt: Date.now(),
+          version: _.inc(1),
+        },
+      })
+
+    if (!release.judgeRelease(r && r.stats ? r.stats.updated : 0)) continue
+    released++
+
+    const stuRes = await db.collection('students').where({ openid: item.claimedBy }).limit(1).get()
+    const stu = stuRes.data && stuRes.data[0]
+    if (!stu) continue
+
+    await db.collection('students').doc(stu._id).update({
+      data: {
+        activeClaims: _.inc(-1),
+        credit: (stu.credit || 0) + release.RULES.creditPenalty,
+        updatedAt: Date.now(),
+      },
+    })
+    await db.collection('credit_logs').add({
+      data: {
+        tenantId: tenantId,
+        openid: item.claimedBy,
+        studentId: stu._id,
+        delta: release.RULES.creditPenalty,
+        reason: 'claim_timeout',
+        batchId: item.batchId,
+        at: Date.now(),
+      },
+    })
+  }
+
+  return { ok: true, scanned: batches.length, released: released }
+}
+
 exports.main = async function (event) {
   const action = (event && event.action) || 'pack'
 
@@ -355,6 +417,7 @@ exports.main = async function (event) {
     if (action === 'execute') return await runExecute()
     if (action === 'notify') return await runNotify()
     if (action === 'generate') return await runGenerate()
+    if (action === 'sweep') return await runSweep()
     return { ok: false, msg: '未知 action: ' + action }
   } catch (e) {
     console.error('[packer]', action, e)
