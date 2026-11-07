@@ -447,3 +447,94 @@
   color: #d93b3b;
   font-weight: 600;
 }
+
+/* 可抢单：食堂分组 */
+.canteen-group {
+  background: #fff;
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(16, 24, 40, 0.04);
+  overflow: hidden;
+}
+
+.canteen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx;
+}
+
+.canteen-left {
+  display: flex;
+  align-items: center;
+}
+
+.canteen-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1c1f26;
+  margin-left: 14rpx;
+}
+
+.canteen-count {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-left: 14rpx;
+}
+
+.canteen-right {
+  display: flex;
+  align-items: center;
+}
+
+.chevron {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-left: 12rpx;
+}
+
+.pool-row {
+  border-top: 1rpx solid #f4f5f7;
+  padding: 20rpx 26rpx;
+  background: #fcfdfe;
+}
+
+.row-route {
+  display: flex;
+  align-items: center;
+}
+
+.row-building {
+  flex: 1;
+  margin-left: 12rpx;
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1c1f26;
+}
+
+.row-foot {
+  display: flex;
+  align-items: center;
+  margin-top: 14rpx;
+  padding-left: 56rpx;
+}
+
+.row-earn {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #ff6a00;
+}
+
+.row-meta {
+  flex: 1;
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-left: 14rpx;
+}
+
+.pool-row .grab-btn {
+  min-width: 130rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}

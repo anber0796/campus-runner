@@ -35,42 +35,45 @@
     </view>
   </view>
 
-  <!-- ============ 可抢单：取哪 + 送哪 + 剩多久 ============ -->
+  <!-- ============ 可抢单：按食堂合并，默认折叠 ============ -->
   <block wx:if="{{tab === 'pool'}}">
     <view class="card pool-tip" wx:if="{{student}}">
       {{student.name}} · 信用 {{student.credit}} · 今日已抢 {{student.claimsToday}} 批
     </view>
 
-    <view class="task pool-card" wx:for="{{pool}}" wx:key="id">
-      <!-- 第一行：取哪、送哪、还剩多久 -->
-      <view class="route-line">
-        <text class="route-tag pick">取</text>
-        <text class="route-name">{{item.canteenName}}</text>
-
-        <text class="route-arrow">→</text>
-
-        <text class="route-tag send">送</text>
-        <text class="route-name send">{{item.buildingText}} · {{item.floorRange}}</text>
-
-        <view class="route-gap"></view>
-        <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
-      </view>
-
-      <!-- 第二行：价格 + 次要信息 + 抢 -->
-      <view class="money-line">
-        <view class="money-left">
-          <text class="earn-big">{{item.earnText}}</text>
-          <text class="money-meta">{{item.orderText}} · {{item.walkText}}</text>
+    <view class="canteen-group" wx:for="{{poolGroups}}" wx:key="key">
+      <!-- 食堂头：点一下展开 -->
+      <view class="canteen-head" bindtap="toggleGroup" data-idx="{{index}}">
+        <view class="canteen-left">
+          <text class="route-tag pick">取</text>
+          <text class="canteen-name">{{item.canteenName}}</text>
+          <text class="canteen-count">{{item.count}} 批 · {{item.orderCount}} 单</text>
         </view>
-
-        <view class="money-right">
-          <text class="claim-left {{item.urgent ? 'urgent' : ''}}">{{item.leftText}}</text>
-          <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{item.id}}">抢</view>
+        <view class="canteen-right">
+          <text class="remain {{item.remainLevel}}" wx:if="{{item.remainText}}">{{item.remainText}}</text>
+          <text class="chevron">{{item.open ? '▾' : '▸'}}</text>
         </view>
       </view>
+
+      <!-- 展开后：按楼栋排序的批次 -->
+      <block wx:if="{{item.open}}">
+        <view class="pool-row" wx:for="{{item.batches}}" wx:for-item="b" wx:key="id">
+          <view class="row-route">
+            <text class="route-tag send">送</text>
+            <text class="row-building">{{b.buildingText}} · {{b.floorRange}}</text>
+            <text class="remain {{b.remainLevel}}" wx:if="{{b.remainText}}">{{b.remainText}}</text>
+          </view>
+
+          <view class="row-foot">
+            <text class="row-earn">{{b.earnText}}</text>
+            <text class="row-meta">{{b.orderText}} · {{b.walkText}} · {{b.leftText}}</text>
+            <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{b.id}}">抢</view>
+          </view>
+        </view>
+      </block>
     </view>
 
-    <view class="empty" wx:if="{{!pool.length && !loading}}">
+    <view class="empty" wx:if="{{!poolGroups.length && !loading}}">
       暂时没有可抢的批次{{'\n'}}下课前会集中放单
     </view>
   </block>

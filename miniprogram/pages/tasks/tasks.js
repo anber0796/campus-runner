@@ -182,12 +182,60 @@ function mergeByBuilding(batches) {
   })
 }
 
+/**
+ * 可抢单按食堂合并：一食堂一堆、二食堂一堆，组内按楼栋排序。
+ * 默认折叠，先让人看清"有哪几个食堂值得去"。
+ */
+function groupPoolByCanteen(list) {
+  const map = {}
+  ;(list || []).forEach(function (b) {
+    const k = b.canteenId || b.canteenName
+    if (!map[k]) {
+      map[k] = { canteenId: b.canteenId, canteenName: b.canteenName, batches: [] }
+    }
+    map[k].batches.push(b)
+  })
+
+  return Object.keys(map).map(function (k) {
+    const g = map[k]
+    // 组内按楼栋排，同栋按楼层段
+    const batches = g.batches.slice().sort(function (a, b) {
+      const ba = (a.buildingIds || [a.buildingId]).join('')
+      const bb = (b.buildingIds || [b.buildingId]).join('')
+      if (ba !== bb) return ba.localeCompare(bb)
+      return (a.minFloor || 0) - (b.minFloor || 0)
+    })
+
+    // 这一堆里最紧的订单
+    let tightest = null
+    batches.forEach(function (b) {
+      const t = fmt.tightest(b.orderList, Date.now())
+      if (t && (!tightest || t.min < tightest.min)) tightest = t
+    })
+
+    return {
+      key: k,
+      canteenId: g.canteenId,
+      canteenName: g.canteenName,
+      count: batches.length,
+      orderCount: batches.reduce(function (sum, b) { return sum + (b.orderCount || 0) }, 0),
+      batches: batches,
+      open: false,
+      remainText: tightest ? tightest.text : '',
+      remainLevel: tightest ? tightest.level : '',
+    }
+  }).sort(function (a, b) {
+    return String(a.canteenName).localeCompare(String(b.canteenName))
+  })
+}
+
 Page({
   data: {
     loading: true,
     error: '',
     tab: 'pool',
     pool: [],
+    poolGroups: [],
     pick: [],
     deliver: [],
     deliverGroups: [],
@@ -254,6 +302,7 @@ Page({
           student: home.student || null,
           canClaim: home.canClaim || null,
           pool: (home.batches || []).map(decorateBatch),
+          poolGroups: groupPoolByCanteen((home.batches || []).map(decorateBatch)),
           pick: mergeByCanteen(active.filter(function (b) {
             return b.status === 'ASSIGNED' || b.status === 'CLAIMED'
           })),
@@ -303,7 +352,7 @@ Page({
         remainLevel: remainLevelOf(b),
       })
     })
-    this.setData({ pool: pool })
+    this.setData({ pool: pool, poolGroups: groupPoolByCanteen(pool) })
     if (expired) this.load()
   },
 
@@ -320,6 +369,15 @@ Page({
 
   switchTab(e) {
     this.setData({ tab: e.currentTarget.dataset.tab })
+  },
+
+  toggleGroup(e) {
+    const idx = e.currentTarget.dataset.idx
+    const groups = this.data.poolGroups
+    if (!groups[idx]) return
+    const patch = {}
+    patch['poolGroups[' + idx + '].open'] = !groups[idx].open
+    this.setData(patch)
   },
 
   grab(e) {
