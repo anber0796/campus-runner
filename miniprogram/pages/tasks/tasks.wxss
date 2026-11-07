@@ -550,12 +550,13 @@
   padding: 20rpx 24rpx 20rpx 0;
 }
 
-/* 单量标签：实心、加粗，和剩余时间并排 */
+/* 单量标签：深墨色，和"抢"按钮的绿色区分开
+   —— 它是信息，不是操作，不能用同一个颜色 */
 .count-chip {
   font-size: 22rpx;
   font-weight: 700;
   color: #fff;
-  background: #1f9d55;
+  background: #3d424a;
   border-radius: 8rpx;
   padding: 4rpx 12rpx;
   margin-right: 10rpx;
