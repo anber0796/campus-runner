@@ -61,12 +61,14 @@
           <view class="row-route">
             <text class="route-tag send">送</text>
             <text class="row-building">{{b.buildingText}} · {{b.floorRange}}</text>
+            <!-- 单量放在剩余时间前面，且做成实心标签，扫一眼就能看到 -->
+            <text class="count-chip">{{b.orderCount}} 单</text>
             <text class="remain {{b.remainLevel}}" wx:if="{{b.remainText}}">{{b.remainText}}</text>
           </view>
 
           <view class="row-foot">
             <text class="row-earn">{{b.earnText}}</text>
-            <text class="row-meta">{{b.orderText}} · {{b.walkText}} · {{b.leftText}}</text>
+            <text class="row-meta">{{b.walkText}} · {{b.leftText}}</text>
             <view class="grab-btn {{busy ? 'disabled' : ''}}" bindtap="grab" data-id="{{b.id}}">抢</view>
           </view>
         </view>

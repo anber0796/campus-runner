@@ -549,3 +549,15 @@
   color: #6b7280;
   padding: 20rpx 24rpx 20rpx 0;
 }
+
+/* 单量标签：实心、加粗，和剩余时间并排 */
+.count-chip {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #fff;
+  background: #1f9d55;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
