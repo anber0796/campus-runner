@@ -50,6 +50,83 @@ function mkOrders(tails, floorBase, canteenName) {
   })
 }
 
+
+/**
+ * 随机生成一批"待抢"批次，用来压测可抢单卡片的排布。
+ * 刻意把参数拉散：3 个食堂、多个楼栋、三种楼层段、不同价格与紧迫度。
+ */
+function makePooled(n) {
+  const CANTEENS = [
+    { id: 'C1', name: '一食堂' },
+    { id: 'C2', name: '二食堂' },
+    { id: 'C3', name: '三食堂' },
+  ]
+  const BUILDINGS = ['1栋', '2栋', '3栋', '5栋', '6栋', '7栋', '8栋']
+  const BANDS = [
+    { id: 'low', from: 1, to: 3 },
+    { id: 'mid', from: 4, to: 5 },
+    { id: 'high', from: 6, to: 7 },
+  ]
+
+  const pickOne = function (arr) { return arr[Math.floor(Math.random() * arr.length)] }
+  const out = []
+
+  for (let i = 0; i < n; i++) {
+    const c = pickOne(CANTEENS)
+    const band = pickOne(BANDS)
+    const cross = Math.random() < 0.25
+
+    let buildings = [pickOne(BUILDINGS)]
+    if (cross) {
+      const other = pickOne(BUILDINGS)
+      if (other !== buildings[0]) buildings.push(other)
+    }
+
+    const maxOrders = cross ? 3 : 6
+    const orderCount = 2 + Math.floor(Math.random() * (maxOrders - 1))
+
+    const tails = []
+    for (let k = 0; k < orderCount; k++) {
+      tails.push(String(1000 + Math.floor(Math.random() * 9000)))
+    }
+
+    const orders = mkOrders(tails, band.from, c.name).map(function (o, idx) {
+      const b = buildings[idx % buildings.length]
+      // 承诺时间刻意拉开：有的只剩几分钟，有的还早
+      const left = idx === 0
+        ? 4 + Math.floor(Math.random() * 8)
+        : 12 + Math.floor(Math.random() * 25)
+      return Object.assign({}, o, {
+        stallFloor: band.from + (idx % (band.to - band.from + 1)),
+        buildingId: b,
+        buildingName: b,
+        dueAt: Date.now() + left * MINUTE,
+      })
+    })
+
+    out.push({
+      id: 'R' + (i + 1),
+      status: 'POOLED',
+      canteenId: c.id,
+      canteenName: c.name,
+      buildingId: buildings.join('+'),
+      buildingIds: buildings,
+      floorBand: band.id,
+      minFloor: band.from,
+      maxFloor: band.to,
+      waveId: 'W2',
+      crossBuilding: cross,
+      price: Math.round((0.9 + Math.random() * 1.0) * 100) / 100,
+      walkMinutes: 4 + Math.floor(Math.random() * 9),
+      orders: orders,
+      orderCount: orders.length,
+      claimDeadline: Date.now() + (1 + Math.floor(Math.random() * 20)) * MINUTE,
+    })
+  }
+
+  return out
+}
+
 const state = {
   token: 'mock-admin-token',
   student: {
@@ -58,7 +135,8 @@ const state = {
     credit: 96,
     claimsToday: 1,
     activeClaims: 0,
-    coverageBuildings: ['3栋', '5栋'],
+    // 演示用：覆盖全部楼栋，方便一次看到足够多的可抢批次
+    coverageBuildings: ['1栋', '2栋', '3栋', '5栋', '6栋', '7栋', '8栋'],
   },
   batches: [
     // 待发单（草稿）
@@ -73,18 +151,6 @@ const state = {
       orders: mkOrders(['1102', '7743'], 6, '二食堂'), orderCount: 2,
     },
     // 已在池子里（学生可抢）
-    {
-      id: 'P1', status: 'POOLED', canteenId: 'C1', canteenName: '一食堂', walkMinutes: 7, buildingId: '3栋', buildingIds: ['3栋'],
-      floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
-      price: 1.2, orders: mkOrders(['2205', '6698', '9012'], 1), orderCount: 3,
-      claimDeadline: now + 12 * MINUTE,
-    },
-    {
-      id: 'P3', status: 'POOLED', canteenId: 'C2', canteenName: '二食堂', walkMinutes: 9, buildingId: '5栋', buildingIds: ['5栋'],
-      floorBand: 'low', minFloor: 1, maxFloor: 3, waveId: 'W2',
-      price: 1.1, orders: mkOrders(['5521', '8834', '1177'], 1, '二食堂'), orderCount: 3,
-      claimDeadline: now + 14 * MINUTE,
-    },
     {
       id: 'P5', status: 'DELIVERED', canteenId: 'C1', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
       floorBand: 'low', minFloor: 2, maxFloor: 3, waveId: 'W2',
@@ -120,7 +186,7 @@ const state = {
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,
       assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 5 * MINUTE,
     },
-  ],
+  ].concat(makePooled(10)),
   logs: [
     { id: 'L1', type: 'claim_income', amount: 12.5, status: 'settled', title: '3栋 1-3 层 · 3 单', createdAt: now - 30 * HOUR },
     { id: 'L2', type: 'claim_income', amount: 7.5, status: 'settled', title: '5栋 6-7 层 · 2 单', createdAt: now - 50 * HOUR },
