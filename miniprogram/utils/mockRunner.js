@@ -74,15 +74,9 @@ function makePooled(n) {
   for (let i = 0; i < n; i++) {
     const c = pickOne(CANTEENS)
     const band = pickOne(BANDS)
-    const cross = Math.random() < 0.25
-
-    let buildings = [pickOne(BUILDINGS)]
-    if (cross) {
-      const other = pickOne(BUILDINGS)
-      if (other !== buildings[0]) buildings.push(other)
-    }
-
-    const maxOrders = cross ? 3 : 6
+    // 不跨楼：一批只服务一栋，取完直接走，不用分拣
+    const buildings = [pickOne(BUILDINGS)]
+    const maxOrders = 6
     const orderCount = 2 + Math.floor(Math.random() * (maxOrders - 1))
 
     const tails = []
@@ -115,7 +109,7 @@ function makePooled(n) {
       minFloor: band.from,
       maxFloor: band.to,
       waveId: 'W2',
-      crossBuilding: cross,
+      crossBuilding: false,
       price: Math.round((0.9 + Math.random() * 1.0) * 100) / 100,
       walkMinutes: 4 + Math.floor(Math.random() * 9),
       orders: orders,
@@ -181,8 +175,8 @@ const state = {
       assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 10 * MINUTE,
     },
     {
-      id: 'P2', status: 'ASSIGNED', canteenId: 'C1', canteenName: '一食堂', buildingId: '3栋+5栋', buildingIds: ['3栋', '5栋'],
-      floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: true,
+      id: 'P2', status: 'ASSIGNED', canteenId: 'C1', canteenName: '一食堂', buildingId: '3栋', buildingIds: ['3栋'],
+      floorBand: 'mid', minFloor: 4, maxFloor: 5, waveId: 'W2', crossBuilding: false,
       price: 1.5, orders: mkOrders(['4411', '3312', '7710', '2221'], 4), orderCount: 4,
       assignedOpenid: 'mock-openid', assignedName: '张同学', assignedAt: now - 5 * MINUTE,
     },
