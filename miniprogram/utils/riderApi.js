@@ -50,6 +50,8 @@ module.exports = {
   deliver: function (batchId, orderId, photo) {
     return call('rider.deliver', { batchId: batchId, orderId: orderId, photo: photo })
   },
+  wallet: function () { return call('rider.wallet') },
+  withdraw: function (amount) { return call('rider.withdraw', { amount: amount }) },
   invite: function () { return call('rider.invite') },
   bindInvite: function (code) { return call('rider.bindInvite', { code: code }) },
 }

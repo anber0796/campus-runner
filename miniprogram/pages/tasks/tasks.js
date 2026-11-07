@@ -39,6 +39,60 @@ function remainLevelOf(b) {
   return t ? t.level : ''
 }
 
+/** 把「哪些食堂是展开的」应用到分组上；刷新后保持展开状态 */
+function applyOpen(groups, openMap) {
+  const m = openMap || {}
+  return (groups || []).map(function (g) {
+    return Object.assign({}, g, { open: !!m[g.key] })
+  })
+}
+
+/**
+ * 可抢单按食堂合并：一食堂一堆、二食堂一堆，组内按楼栋排序。
+ * 默认折叠，先让人看清"有哪几个食堂值得去"。
+ */
+function groupPoolByCanteen(list) {
+  const map = {}
+  ;(list || []).forEach(function (b) {
+    const k = b.canteenId || b.canteenName
+    if (!map[k]) {
+      map[k] = { key: k, canteenId: b.canteenId, canteenName: b.canteenName, batches: [] }
+    }
+    map[k].batches.push(b)
+  })
+
+  return Object.keys(map).map(function (k) {
+    const g = map[k]
+    // 组内按楼栋排，同栋按楼层段
+    const batches = g.batches.slice().sort(function (a, b) {
+      const ba = (a.buildingIds || [a.buildingId]).join('')
+      const bb = (b.buildingIds || [b.buildingId]).join('')
+      if (ba !== bb) return ba.localeCompare(bb)
+      return (a.minFloor || 0) - (b.minFloor || 0)
+    })
+
+    let tightest = null
+    batches.forEach(function (b) {
+      const t = fmt.tightest(b.orderList, Date.now())
+      if (t && (!tightest || t.min < tightest.min)) tightest = t
+    })
+
+    return {
+      key: k,
+      canteenId: g.canteenId,
+      canteenName: g.canteenName,
+      count: batches.length,
+      orderCount: batches.reduce(function (sum, b) { return sum + (b.orderCount || 0) }, 0),
+      batches: batches,
+      open: false,
+      remainText: tightest ? tightest.text : '',
+      remainLevel: tightest ? tightest.level : '',
+    }
+  }).sort(function (a, b) {
+    return String(a.canteenName).localeCompare(String(b.canteenName))
+  })
+}
+
 const STATUS = {
   ASSIGNED: { text: '待取餐', cls: 'tag tag-amber' },
   CLAIMED: { text: '待取餐', cls: 'tag tag-amber' },

@@ -124,6 +124,50 @@ test('utils/group.js 被三个页面复用（不再各写一份）', function ()
   if (missing.length) throw new Error('没复用公共分组: ' + missing.join(', '))
 })
 
+test('页面里调用的函数都有定义（防"函数丢了还在调"）', function () {
+  // 允许的全局：小程序 API、语言内置、生命周期钩子
+  const ALLOW = new Set([
+    'Page', 'App', 'Component', 'require', 'getApp', 'getCurrentPages',
+    'wx', 'console', 'Object', 'Array', 'String', 'Number', 'Boolean',
+    'Math', 'JSON', 'Date', 'Promise', 'Set', 'Map', 'Error', 'RegExp',
+    'parseInt', 'parseFloat', 'isNaN', 'isFinite',
+    'encodeURIComponent', 'decodeURIComponent',
+    'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
+    'onLoad', 'onShow', 'onHide', 'onUnload', 'onReady', 'onPullDownRefresh',
+    'if', 'for', 'while', 'switch', 'catch', 'function', 'return', 'typeof',
+  ])
+
+  const bad = []
+  app.pages.forEach(function (p) {
+    const src = fs.readFileSync(path.join(MP, p + '.js'), 'utf8')
+
+    // 已定义的：function foo / const foo = / let foo / var foo
+    const defined = new Set()
+    let m
+    const defRe = /(?:function\s+([A-Za-z_$][\w$]*))|(?:(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=)/g
+    while ((m = defRe.exec(src))) defined.add(m[1] || m[2])
+
+    // 对象简写方法：load() { ... }
+    const methodRe = /^\s{2}([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/gm
+    while ((m = methodRe.exec(src))) defined.add(m[1])
+
+    // 被当成函数调用的（排除 obj.method() 这种带点的）
+    const callRe = /(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g
+    const called = new Set()
+    while ((m = callRe.exec(src))) called.add(m[1])
+
+    called.forEach(function (name) {
+      if (ALLOW.has(name) || defined.has(name)) return
+      // 形参里的名字：粗略放过 (a, b) => 这种
+      if (new RegExp('\\([^)]*\\b' + name + '\\b[^)]*\\)\s*=>').test(src)) return
+      if (new RegExp('function\\s*\\([^)]*\\b' + name + '\\b').test(src)) return
+      bad.push(p + ' → ' + name + '()')
+    })
+  })
+
+  if (bad.length) throw new Error('调用了未定义的函数: ' + bad.slice(0, 8).join(', '))
+})
+
 console.log('\n通过 ' + passed + ' 项')
 if (failures.length) {
   console.log('失败 ' + failures.length + ' 项')
