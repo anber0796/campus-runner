@@ -137,7 +137,7 @@
 
       <view class="task-foot">
         <view class="muted">共 {{item.count}} 单</view>
-        <view class="go-btn" bindtap="goDeliver">去送达</view>
+        <view class="go-btn" bindtap="goDeliver" data-building="{{item.buildingText}}">去送达</view>
       </view>
     </view>
 

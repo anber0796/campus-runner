@@ -6,8 +6,8 @@
     <view class="card head-card">
       <view class="row-between">
         <view>
-          <view class="title">待送 {{total}} 单</view>
-          <view class="muted mt8">按楼栋 → 楼层从高到低，一趟走完</view>
+          <view class="title">{{heading || '全部待送'}} · {{total}} 单</view>
+          <view class="muted mt8">按楼层从高到低，一趟走完</view>
         </view>
       </view>
     </view>

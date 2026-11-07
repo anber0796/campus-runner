@@ -448,7 +448,10 @@ Page({
     })
   },
 
-  goDeliver() {
-    wx.navigateTo({ url: '/pages/delivery/delivery' })
+  goDeliver(e) {
+    const building = (e && e.currentTarget && e.currentTarget.dataset.building) || ''
+    wx.navigateTo({
+      url: '/pages/delivery/delivery' + (building ? '?building=' + encodeURIComponent(building) : ''),
+    })
   },
 })

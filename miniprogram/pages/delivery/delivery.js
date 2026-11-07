@@ -55,6 +55,11 @@ Page({
     primary: null,
   },
 
+  onLoad(query) {
+    // 从待送达某栋点进来时只显示那一栋，别把别的楼混进来
+    this.building = (query && query.building) ? decodeURIComponent(query.building) : ''
+  },
+
   onShow() {
     this.load()
   },
@@ -90,21 +95,29 @@ Page({
           })
         })
 
-        if (!all.length) {
-          that.setData({ loading: false, groups: [], total: 0, done: true, primary: null })
+        // 只保留指定楼栋的单
+        const filtered = that.building
+          ? all.filter(function (o) { return (o.buildingText || '') === that.building })
+          : all
+
+        if (!filtered.length) {
+          that.setData({
+            loading: false, groups: [], total: 0, done: true, primary: null,
+            heading: that.building || '',
+          })
           return
         }
 
         // 每单算剩余时间
         const now = Date.now()
-        all.forEach(function (o) {
+        filtered.forEach(function (o) {
           const r = fmt.remain(o.dueAt, now)
           o.remainText = r ? r.text : ''
           o.remainLevel = r ? r.level : ''
         })
 
         // 全局排序后的下一单，供底部主按钮用
-        const sorted = all.slice().sort(function (a, b) {
+        const sorted = filtered.slice().sort(function (a, b) {
           const ba = String(a.buildingText || '')
           const bb = String(b.buildingText || '')
           if (ba !== bb) return ba.localeCompare(bb)
@@ -113,8 +126,9 @@ Page({
 
         that.setData({
           loading: false,
-          groups: groupOrders(all),
-          total: all.length,
+          groups: groupOrders(filtered),
+          total: filtered.length,
+          heading: that.building || '',
           done: false,
           primary: { targetId: sorted[0].id, batchId: sorted[0].batchId, tail: sorted[0].tail },
         })
