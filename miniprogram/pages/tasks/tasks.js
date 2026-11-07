@@ -1,5 +1,6 @@
 const riderApi = require('../../utils/riderApi')
 const fmt = require('../../utils/format')
+const group = require('../../utils/group')
 
 function leftText(deadline) {
   if (!deadline) return ''
@@ -136,7 +137,6 @@ function mergeByBuilding(batches) {
       : b.buildingId
     ;(b.orderList || []).forEach(function (o) {
       if (o.picked && !o.delivered) {
-        // 优先用订单自己的楼栋；跨楼批次靠这一条拆开
         orders.push(Object.assign({}, o, {
           batchId: b.id,
           buildingText: o.buildingId || o.buildingName || fallback,
@@ -145,94 +145,16 @@ function mergeByBuilding(batches) {
     })
   })
 
-  const byBuilding = {}
-  orders.forEach(function (o) {
-    const k = o.buildingText || '未知楼栋'
-    if (!byBuilding[k]) byBuilding[k] = []
-    byBuilding[k].push(o)
-  })
-
-  return Object.keys(byBuilding).sort().map(function (k) {
-    const list = byBuilding[k]
-    const byFloor = {}
-    list.forEach(function (o) {
-      const f = o.floor || 0
-      if (!byFloor[f]) byFloor[f] = []
-      byFloor[f].push(o)
-    })
-
-    const floors = Object.keys(byFloor)
-      .map(Number)
-      .sort(function (a, b) { return b - a })
-      .map(function (f) {
-        return { floor: f, label: f + 'F', count: byFloor[f].length }
-      })
-
-    const t = fmt.tightest(list)
-
-    return {
-      buildingText: k,
-      count: list.length,
-      orderText: list.length + ' 单',
-      floors: floors,
-      floorText: floors.map(function (f) { return f.label + ' ' + f.count + '单' }).join(' · '),
+  // 分组交给公共工具，这里只补剩余时间
+  return group.buildings(orders).map(function (g) {
+    const t = fmt.tightest(
+      g.floors.reduce(function (acc, f) { return acc.concat(f.orders) }, [])
+    )
+    return Object.assign({}, g, {
+      orderText: g.count + ' 单',
       remainText: t ? t.text : '',
       remainLevel: t ? t.level : '',
-    }
-  })
-}
-
-/**
- * 可抢单按食堂合并：一食堂一堆、二食堂一堆，组内按楼栋排序。
- * 默认折叠，先让人看清"有哪几个食堂值得去"。
- */
-function groupPoolByCanteen(list) {
-  const map = {}
-  ;(list || []).forEach(function (b) {
-    const k = b.canteenId || b.canteenName
-    if (!map[k]) {
-      map[k] = { canteenId: b.canteenId, canteenName: b.canteenName, batches: [] }
-    }
-    map[k].batches.push(b)
-  })
-
-  return Object.keys(map).map(function (k) {
-    const g = map[k]
-    // 组内按楼栋排，同栋按楼层段
-    const batches = g.batches.slice().sort(function (a, b) {
-      const ba = (a.buildingIds || [a.buildingId]).join('')
-      const bb = (b.buildingIds || [b.buildingId]).join('')
-      if (ba !== bb) return ba.localeCompare(bb)
-      return (a.minFloor || 0) - (b.minFloor || 0)
     })
-
-    // 这一堆里最紧的订单
-    let tightest = null
-    batches.forEach(function (b) {
-      const t = fmt.tightest(b.orderList, Date.now())
-      if (t && (!tightest || t.min < tightest.min)) tightest = t
-    })
-
-    return {
-      key: k,
-      canteenId: g.canteenId,
-      canteenName: g.canteenName,
-      count: batches.length,
-      orderCount: batches.reduce(function (sum, b) { return sum + (b.orderCount || 0) }, 0),
-      batches: batches,
-      open: false,
-      remainText: tightest ? tightest.text : '',
-      remainLevel: tightest ? tightest.level : '',
-    }
-  }).sort(function (a, b) {
-    return String(a.canteenName).localeCompare(String(b.canteenName))
-  })
-}
-
-function applyOpen(groups, openMap) {
-  const m = openMap || {}
-  return (groups || []).map(function (g) {
-    return Object.assign({}, g, { open: !!m[g.key] })
   })
 }
 
@@ -438,6 +360,32 @@ Page({
   },
 
   // 待取餐：按食堂合并后进取餐页
+  // 放弃：抢错了或临时有事，退回池子（比超时收回轻，不扣分）
+  releaseBatch(e) {
+    const that = this
+    const batchId = e.currentTarget.dataset.batch
+    const canteen = e.currentTarget.dataset.canteen || '这一批'
+
+    wx.showModal({
+      title: '放弃这一批？',
+      content: canteen + ' 会退回抢单池，别人可以抢。放弃不扣信用分，但会计次。',
+      confirmText: '放弃',
+      cancelText: '再想想',
+      success: function (res) {
+        if (!res.confirm) return
+        riderApi
+          .release(batchId)
+          .then(function () {
+            wx.showToast({ title: '已退回抢单池', icon: 'none' })
+            that.load()
+          })
+          .catch(function (err) {
+            wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+          })
+      },
+    })
+  },
+
   goPickup(e) {
     const g = this.data.pick[e.currentTarget.dataset.index]
     if (!g) return

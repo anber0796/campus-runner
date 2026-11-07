@@ -1,7 +1,7 @@
 /**
  * 运营后台接口封装（走云函数 packer 的 admin.* 路由）
  *
- * 和 utils/api.js 的区别：
+ * 和 utils/studentApi.js 的区别：
  *   api.js    学生端，身份靠 wx.cloud 的 OPENID 自动识别
  *   adminApi  运营端，身份靠登录后拿到的 token，显式带上
  */
@@ -109,6 +109,14 @@ module.exports = {
 
   publishAll: function () {
     return call('admin.publishAll')
+  },
+
+  withdrawals: function () {
+    return call('admin.withdrawals')
+  },
+
+  markWithdrawn: function (ids) {
+    return call('admin.markWithdrawn', { ids: ids })
   },
 
   checklist: function () {

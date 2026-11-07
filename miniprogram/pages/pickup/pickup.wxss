@@ -13,8 +13,8 @@
   background: #1f9d55;
   color: #fff;
   font-size: 26rpx;
-  padding: 0 32rpx;
-  line-height: 64rpx;
+  padding: 0 40rpx;
+  line-height: 80rpx;
   border-radius: 32rpx;
 }
 
@@ -40,7 +40,7 @@
   color: #fff;
   font-size: 27rpx;
   padding: 0 36rpx;
-  line-height: 72rpx;
+  line-height: 80rpx;
   border-radius: 12rpx;
 }
 
@@ -269,7 +269,7 @@
 .undo-btn {
   min-width: 140rpx;
   text-align: center;
-  line-height: 88rpx;
+  line-height: 80rpx;
   border-radius: 44rpx;
   border: 2rpx solid #e08a00;
   color: #e08a00;

@@ -114,7 +114,7 @@
   color: #fff;
   background: #1f9d55;
   padding: 0 28rpx;
-  line-height: 60rpx;
+  line-height: 80rpx;
   border-radius: 30rpx;
 }
 

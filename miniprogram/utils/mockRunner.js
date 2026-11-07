@@ -126,7 +126,9 @@ const state = {
   student: {
     openid: 'mock-openid',
     name: '张同学',
+    status: 'active',
     credit: 96,
+    realmobile: '',
     claimsToday: 1,
     activeClaims: 0,
     // 演示用：覆盖全部楼栋，方便一次看到足够多的可抢批次
@@ -291,7 +293,48 @@ function balance() {
   }
 }
 
+/**
+ * 与 cloudfunctions/packer/lib/claim.js 保持一致的准入规则。
+ * mock 里曾经恒返回 ok，导致调试时以为能抢、上线才发现被锁。
+ */
+function canClaimMock(batch) {
+  const s = state.student
+
+  if (!s) return { ok: false, reason: 'no_student' }
+  if (s.status !== 'active') return { ok: false, reason: 'not_certified' }
+  if (s.punishUntil && s.punishUntil > Date.now()) return { ok: false, reason: 'punished' }
+  if ((s.credit || 0) < 80) return { ok: false, reason: 'credit_too_low' }
+  if ((s.claimsToday || 0) >= 6) return { ok: false, reason: 'daily_limit' }
+  if ((s.activeClaims || 0) >= 2) return { ok: false, reason: 'active_limit' }
+
+  if (batch) {
+    if (batch.status !== 'POOLED') return { ok: false, reason: 'already_taken' }
+    if (!(batch.price > 0)) return { ok: false, reason: 'no_price' }
+    const need = batch.buildingIds || [batch.buildingId]
+    const cover = s.coverageBuildings || []
+    for (let i = 0; i < need.length; i++) {
+      if (cover.indexOf(need[i]) < 0) return { ok: false, reason: 'building_not_covered' }
+    }
+  }
+
+  return { ok: true }
+}
+
 const handlers = {
+  // ---------------- 学生档案 ----------------
+  'student.get': function () {
+    return delay({ student: state.student, missing: [] })
+  },
+
+  'student.save': function (p) {
+    state.student = Object.assign({}, state.student, p.profile || {}, {
+      // 只填了基础信息 → pending；补齐资质 → active
+      status: p.partial ? 'pending' : 'active',
+      needRegister: false,
+    })
+    return delay({ student: state.student })
+  },
+
   // ---------------- 骑手 ----------------
   'rider.home': function () {
     const cover = state.student.coverageBuildings
@@ -305,7 +348,7 @@ const handlers = {
 
     return delay({
       student: state.student,
-      canClaim: { ok: true },
+      canClaim: canClaimMock(list[0]),
       batches: list,
     })
   },
@@ -313,12 +356,31 @@ const handlers = {
   'rider.grab': function (p) {
     const b = state.batches.filter(function (x) { return x.id === p.batchId })[0]
     if (!b) return fail('批次不存在', 404)
-    if (b.status !== 'POOLED') return fail('手慢了，这批已被抢走', 409)
+
+    const gate = canClaimMock(b)
+    if (!gate.ok) {
+      if (gate.reason === 'already_taken') return fail('手慢了，这批已被抢走', 409)
+      return fail(gate.reason, 409)
+    }
 
     b.status = 'CLAIMED'
     b.claimedAt = Date.now()
+    b.claimedBy = state.student.openid
     state.student.activeClaims += 1
+    state.student.claimsToday = (state.student.claimsToday || 0) + 1
     return delay({ ok: true, batch: shapeBatch(b) })
+  },
+
+  'rider.release': function (p) {
+    const b = state.batches.filter(function (x) { return x.id === p.batchId })[0]
+    if (!b) return fail('批次不存在', 404)
+    if (b.status !== 'CLAIMED') return fail('只有已抢未取的单可以放弃', 409)
+
+    b.status = 'POOLED'
+    b.claimedAt = null
+    b.claimedBy = null
+    state.student.activeClaims = Math.max(0, state.student.activeClaims - 1)
+    return delay({ ok: true })
   },
 
   'rider.myBatches': function () {
@@ -543,6 +605,32 @@ const handlers = {
 
   'admin.settle': function () {
     return delay({ ok: true, settled: 0, inviteIssued: 0 })
+  },
+
+  'admin.withdrawals': function () {
+    const list = state.logs.filter(function (l) {
+      return l.type === 'withdraw' && l.status === 'pending'
+    })
+    const total = list.reduce(function (sum, l) { return sum + Math.abs(l.amount || 0) }, 0)
+    return delay({
+      count: list.length,
+      total: round2(total),
+      items: list.map(function (l) {
+        return { id: l.id, amount: Math.abs(l.amount || 0), createdAt: l.createdAt }
+      }),
+    })
+  },
+
+  'admin.markWithdrawn': function (p) {
+    const ids = Array.isArray(p.ids) ? p.ids : []
+    let updated = 0
+    state.logs.forEach(function (l) {
+      if (ids.indexOf(l.id) >= 0 && l.type === 'withdraw') {
+        l.status = 'paid'
+        updated++
+      }
+    })
+    return delay({ ok: true, updated: updated, total: ids.length })
   },
 
   'admin.stats': function () {

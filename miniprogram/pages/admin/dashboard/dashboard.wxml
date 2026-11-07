@@ -63,6 +63,17 @@
       有 {{stats.staleClaims}} 个批次抢了 15 分钟没去取，系统会自动收回。
     </view>
 
+    <view class="section-title">待打款</view>
+    <view class="card payout-card">
+      <view class="row-between">
+        <view>
+          <view class="payout-num">¥{{withdrawals.total}}</view>
+          <view class="muted">{{withdrawals.count}} 笔提现申请待处理</view>
+        </view>
+        <view class="payout-btn {{withdrawals.count ? '' : 'disabled'}}" bindtap="payoutAll">标记已打款</view>
+      </view>
+    </view>
+
     <view class="section-title">待处理告警</view>
     <view class="card" wx:if="{{stats.alerts.length}}">
       <view class="alert-row" wx:for="{{stats.alerts}}" wx:key="id">

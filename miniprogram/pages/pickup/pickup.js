@@ -1,55 +1,6 @@
 const riderApi = require('../../utils/riderApi')
 const fmt = require('../../utils/format')
-
-/**
- * 按「档口在食堂的几楼」分组，楼层从低到高。
- * 同一食堂的多批会先合并再分组，所以动线是整栋食堂一起走的。
- */
-function groupByStallFloor(orders) {
-  // 楼 → 商家 → 运单。同一个商家只出现一次，运单挂在它下面
-  const byFloor = {}
-  ;(orders || []).forEach(function (o) {
-    const f = o.stallFloor || 1
-    if (!byFloor[f]) byFloor[f] = {}
-    const name = o.stallName || '未命名档口'
-    if (!byFloor[f][name]) byFloor[f][name] = []
-    byFloor[f][name].push(o)
-  })
-
-  return Object.keys(byFloor)
-    .map(Number)
-    .sort(function (a, b) { return a - b })
-    .map(function (f) {
-      const stallMap = byFloor[f]
-      const stallNames = Object.keys(stallMap).sort()
-
-      let count = 0
-      let pickedCount = 0
-
-      const stalls = stallNames.map(function (name) {
-        const list = stallMap[name].slice().sort(function (a, b) {
-          return String(a.tail).localeCompare(String(b.tail))
-        })
-        count += list.length
-        pickedCount += list.filter(function (o) { return o.picked }).length
-        return {
-          name: name,
-          count: list.length,
-          allDone: list.every(function (o) { return o.picked }),
-          orders: list,
-        }
-      })
-
-      return {
-        floor: f,
-        count: count,
-        pickedCount: pickedCount,
-        stallCount: stallNames.length,
-        allDone: pickedCount === count,
-        stalls: stalls,
-      }
-    })
-}
+const group = require('../../utils/group')
 
 Page({
   data: {
@@ -141,7 +92,7 @@ Page({
     })
 
     const allPicked = orders.length > 0 && orders.every(function (o) { return o.picked })
-    const groups = groupByStallFloor(orders)
+    const groups = group.floorStalls(orders)
 
     let nextStop = null
     for (let i = 0; i < groups.length && !nextStop; i++) {

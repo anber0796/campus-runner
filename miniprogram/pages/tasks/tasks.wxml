@@ -106,7 +106,11 @@
           {{item.orderText}} · {{item.earnText}}
           <text wx:if="{{item.batchIds.length > 1}}"> · 已合并 {{item.batchIds.length}} 批</text>
         </view>
-        <view class="go-btn" bindtap="goPickup" data-index="{{index}}">去取餐</view>
+        <view class="foot-actions">
+          <text class="release-link" bindtap="releaseBatch"
+                data-batch="{{item.batchIds[0]}}" data-canteen="{{item.canteenName}}">放弃</text>
+          <view class="go-btn" bindtap="goPickup" data-index="{{index}}">去取餐</view>
+        </view>
       </view>
     </view>
 

@@ -1,4 +1,4 @@
-const api = require('../../utils/api')
+const studentApi = require('../../utils/studentApi')
 const wavesLib = require('../../utils/waves')
 const subscribe = require('../../utils/subscribe')
 
@@ -158,7 +158,7 @@ Page({
     const that = this
     this.setData({ submitting: true })
     // 先把基础信息存下来：中途退出不会白填，状态是"待完善"
-    api.saveStudent(this.buildProfile(), true)
+    studentApi.save(this.buildProfile(), true)
       .then(function () {
         that.setData({ submitting: false, step: 2 })
         wx.pageScrollTo({ scrollTop: 0, duration: 200 })
@@ -184,7 +184,7 @@ Page({
 
     const that = this
     this.setData({ submitting: true })
-    api.saveStudent(this.buildProfile())
+    studentApi.save(this.buildProfile())
       .then(function () {
         wx.showToast({ title: '认证已提交', icon: 'success' })
         if (!subscribe.templateIds().length) {

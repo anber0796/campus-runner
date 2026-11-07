@@ -608,6 +608,57 @@ async function assignAll(args) {
   return { assigned: assigned, skipped: skipped, total: batches.length }
 }
 
+/**
+ * 待打款的提现申请。
+ * 现在不接支付，运营按这个列表手工转账，转完标记已打款。
+ */
+async function listWithdrawals(args) {
+  const db = args.db
+  const tenantId = config.TENANT_ID
+
+  const list = await fetchAll(db.collection('wallet_logs').where({
+    tenantId: tenantId,
+    type: 'withdraw',
+    status: 'pending',
+  }))
+
+  const total = list.reduce(function (sum, x) { return sum + Math.abs(x.amount || 0) }, 0)
+
+  return {
+    count: list.length,
+    total: Math.round(total * 100) / 100,
+    items: list
+      .sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0) })
+      .map(function (x) {
+        return {
+          id: x._id,
+          openid: x.openid,
+          amount: Math.abs(x.amount || 0),
+          createdAt: x.createdAt || 0,
+        }
+      }),
+  }
+}
+
+/** 标记已打款（人工转账之后点一下） */
+async function markWithdrawn(args) {
+  const db = args.db
+  const ids = Array.isArray(args.event.ids) ? args.event.ids : []
+  if (!ids.length) throw AppError(400, '没有要标记的记录')
+
+  let updated = 0
+  for (const id of ids) {
+    const r = await db.collection('wallet_logs')
+      .where({ _id: id, status: 'pending', type: 'withdraw' })
+      .update({
+        data: { status: 'paid', paidAt: Date.now(), paidBy: args.event.operator || '' },
+      })
+    if (r && r.stats && r.stats.updated === 1) updated++
+  }
+
+  return { ok: true, updated: updated, total: ids.length }
+}
+
 // ---------------------------------------------------------------- 路由表
 
 
@@ -622,6 +673,8 @@ const HANDLERS = {
   'admin.publishBatch': { fn: publishBatch },
   'admin.publishAll': { fn: publishAll },
   'admin.settle': { fn: settleWallets },
+  'admin.withdrawals': { fn: listWithdrawals },
+  'admin.markWithdrawn': { fn: markWithdrawn },
   'admin.checklist': { fn: buildAssignList },
   'admin.assignBatch': { fn: assignOne },
   'admin.assignAll': { fn: assignAll },

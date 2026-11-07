@@ -1,48 +1,6 @@
 const riderApi = require('../../utils/riderApi')
 const fmt = require('../../utils/format')
-
-/**
- * 把多个批次的待送订单打散，重新按「楼栋 → 楼层（降序）」组织。
- *
- * 为什么不能按批次走：一个骑手手上可能同时有两批，一批送 3 栋、一批送 5 栋。
- * 按批次做就是 3栋→(回食堂)→5栋，来回跑；打散之后变成 3栋→5栋，一趟走完。
- * 楼栋内按楼层从高到低，送完一路往下。
- */
-function groupOrders(all) {
-  const byBuilding = {}
-  all.forEach(function (o) {
-    const k = o.buildingText || o.buildingId || '未知楼栋'
-    if (!byBuilding[k]) byBuilding[k] = []
-    byBuilding[k].push(o)
-  })
-
-  return Object.keys(byBuilding).sort().map(function (k) {
-    const list = byBuilding[k].slice().sort(function (a, b) {
-      return (b.floor || 0) - (a.floor || 0)
-    })
-
-    const byFloor = {}
-    list.forEach(function (o) {
-      const f = o.floor || 0
-      if (!byFloor[f]) byFloor[f] = []
-      byFloor[f].push(o)
-    })
-
-    const floors = Object.keys(byFloor)
-      .map(Number)
-      .sort(function (a, b) { return b - a })
-      .map(function (f) {
-        return {
-          floor: f,
-          label: f + ' 层',
-          count: byFloor[f].length,
-          orders: byFloor[f],
-        }
-      })
-
-    return { buildingText: k, count: list.length, floors: floors }
-  })
-}
+const group = require('../../utils/group')
 
 Page({
   data: {
@@ -126,7 +84,7 @@ Page({
 
         that.setData({
           loading: false,
-          groups: groupOrders(filtered),
+          groups: group.buildings(filtered),
           total: filtered.length,
           heading: that.building || '',
           done: false,

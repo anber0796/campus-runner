@@ -243,6 +243,48 @@ module.exports = {
   },
 
   /**
+   * 主动放弃：抢错了、临时有事，可以自己退回池子。
+   * 不扣信用分（比超时收回轻），但计入当日放弃次数，防止抢着玩。
+   */
+  'rider.release': async function (args) {
+    const db = args.db
+    const openid = args.ctx.OPENID
+    const batchId = args.event.batchId
+    const _ = db.command
+
+    const res = await db.collection(BATCH).doc(batchId).get()
+    const batch = res.data
+    if (!batch) throw AppError(404, '批次不存在')
+    if (batch.status !== 'CLAIMED') throw AppError(409, '只有已抢未取的单可以放弃')
+    if (batch.claimedBy !== openid) throw AppError(403, '这不是你的批次')
+
+    const r = await db.collection(BATCH)
+      .where({ _id: batchId, status: 'CLAIMED', claimedBy: openid })
+      .update({
+        data: {
+          status: 'POOLED',
+          claimedBy: null,
+          claimedAt: null,
+          releasedByUser: true,
+          releasedAt: Date.now(),
+          updatedAt: Date.now(),
+          version: _.inc(1),
+        },
+      })
+
+    if (!(r && r.stats && r.stats.updated === 1)) throw AppError(409, '状态已变化')
+
+    const stu = await getStudent(db, openid)
+    if (stu) {
+      await db.collection(STUDENT).doc(stu._id).update({
+        data: { activeClaims: _.inc(-1), releasesToday: _.inc(1) },
+      })
+    }
+
+    return { ok: true }
+  },
+
+  /**
    * 撤销取餐。点错行了可以撤销，不用去求档口。
    */
   'rider.unpick': async function (args) {

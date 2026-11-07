@@ -1,4 +1,4 @@
-const adminApi = require('../../utils/adminApi')
+const adminApi = require('../../../utils/adminApi')
 
 const STATUS = {
   available: { text: '待派', cls: 'tag' },
@@ -26,11 +26,47 @@ Page({
     }
     this.setData({ username: adminApi.getUsername() })
     this.load()
+    this.loadWithdrawals()
   },
 
   onPullDownRefresh() {
     this.load()
+    this.loadWithdrawals()
     wx.stopPullDownRefresh()
+  },
+
+  loadWithdrawals() {
+    const that = this
+    adminApi
+      .withdrawals()
+      .then(function (d) {
+        that.setData({ withdrawals: d })
+      })
+      .catch(function () {})
+  },
+
+  payoutAll() {
+    const that = this
+    const list = this.data.withdrawals.items || []
+    if (!list.length) return wx.showToast({ title: '没有待打款的申请', icon: 'none' })
+
+    wx.showModal({
+      title: '标记已打款',
+      content: '共 ' + list.length + ' 笔 · ¥' + this.data.withdrawals.total + '。确认已经转账完成？',
+      confirmText: '已打款',
+      success: function (res) {
+        if (!res.confirm) return
+        adminApi
+          .markWithdrawn(list.map(function (x) { return x.id }))
+          .then(function (r) {
+            wx.showToast({ title: '已标记 ' + r.updated + ' 笔', icon: 'success' })
+            that.loadWithdrawals()
+          })
+          .catch(function (err) {
+            wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+          })
+      },
+    })
   },
 
   load() {

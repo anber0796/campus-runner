@@ -101,7 +101,7 @@
   color: #fff;
   font-size: 27rpx;
   padding: 0 42rpx;
-  line-height: 68rpx;
+  line-height: 80rpx;
   border-radius: 34rpx;
 }
 

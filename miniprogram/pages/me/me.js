@@ -1,4 +1,4 @@
-const api = require('../../utils/api')
+const studentApi = require('../../utils/studentApi')
 const wavesLib = require('../../utils/waves')
 
 Page({
@@ -17,7 +17,7 @@ Page({
 
   load() {
     const that = this
-    api.getStudent()
+    studentApi.get()
       .then(function (res) {
         const s = res.student || {}
         const statusMap = {

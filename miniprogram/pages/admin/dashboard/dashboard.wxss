@@ -151,3 +151,22 @@
   font-size: 25rpx;
   margin-bottom: 24rpx;
 }
+
+.payout-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ff6a00;
+}
+
+.payout-btn {
+  background: #1f9d55;
+  color: #fff;
+  font-size: 26rpx;
+  padding: 0 32rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+}
+
+.payout-btn.disabled {
+  background: #c9cdd4;
+}

@@ -2,10 +2,6 @@
   "pages": [
     "pages/tasks/tasks",
     "pages/delivery/delivery",
-    "pages/index/index",
-    "pages/pack/pack",
-    "pages/deliver/deliver",
-    "pages/order/order",
     "pages/wallet/wallet",
     "pages/me/me",
     "pages/register/register",

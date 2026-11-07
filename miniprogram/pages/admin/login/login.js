@@ -1,4 +1,4 @@
-const adminApi = require('../../utils/adminApi')
+const adminApi = require('../../../utils/adminApi')
 
 Page({
   data: {

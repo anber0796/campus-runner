@@ -107,7 +107,7 @@ page {
   border: 1rpx solid #1f9d55;
   border-radius: 12rpx;
   font-size: 28rpx;
-  line-height: 84rpx;
+  line-height: 80rpx;
   text-align: center;
 }
 
@@ -193,7 +193,7 @@ page {
 .tab {
   flex: 1;
   text-align: center;
-  line-height: 68rpx;
+  line-height: 80rpx;
   font-size: 27rpx;
   color: #5b6068;
   border-radius: 12rpx;
